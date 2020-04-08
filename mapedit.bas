@@ -3,6 +3,7 @@
 #include "headers/raycast.bi"
 
 #include "headers/editor/arguments.bi"
+#include "headers/editor/utils.bi"
 
 #define __XRES 800
 #define __YRES 480
@@ -20,37 +21,18 @@ Dim As Integer		editX, editY
 
 Dim As String		fileName
 
-' Functions
-Sub scalePut( ByVal dest As Any Ptr = 0, ByVal xPos As Integer, ByVal yPos As Integer, _
-	      ByVal w As Integer, ByVal h As Integer, ByVal image As Any Ptr )
-	If image = 0 Then
-		Return	
-	Endif
-	
-	Dim As Double sampleX
-	Dim As Double sampleY
-	
-	For y As Integer = 0 to h
-		For x As Integer = 0 to w
-			sampleX = (x/w)
-			sampleY = (y/h)
-			
-			PSet dest, ( xPos + x, yPos + y), sampleTexture(sampleX, sampleY, image)
-		Next
-	Next
-End Sub
+' Load files specified on the commandline
+fileName = getLastArgument()
 
-' Load file specified on the commandline
-If Command(1) <> "" Then
-	uMap.load( Command(1) )
-	fileName = Command(1)
+If fileName <> "" Then
+	uMap.load( fileName )
 Else
 	uMap = gameMap(32,32)
 	fileName = "untitled.dat"
 Endif
 
-If Command(2) <> "" Then
-	uAtlas.loadTextures( Command(2) )
+If getArgument("-a") <> "" Then
+	uAtlas.loadTextures( getArgument("-a") )
 Endif
 
 ' Main Loop

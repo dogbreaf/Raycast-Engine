@@ -11,6 +11,7 @@ test.atlas.loadTextures( "data/texture.bmp" )
 
 test.playerX = 6.5
 test.playerY = 3.5
+test.playerA = _pi
 
 Do
 	ScreenLock
