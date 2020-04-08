@@ -3,12 +3,14 @@
 
 #include once "fbgfx.bi"
 
+' Free an image without risk of double freeing it 
 Sub safeFree( ByRef image As Any Ptr ) 
 	If image <> 0 Then
 		ImageDestroy(image):image = 0
 	Endif
 End Sub
 
+' Texture atlas object
 type textureAtlas
 	atlas		As fb.image Ptr	' The entire texture atlas
 	texture 	As fb.image Ptr	' The currently selected texture

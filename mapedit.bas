@@ -1,5 +1,6 @@
 #include "textureAtlas.bi"
 #include "map.bi"
+#include "raycast.bi"
 
 #define __XRES 800
 #define __YRES 480
@@ -16,6 +17,26 @@ Dim As Integer		selectedTexture
 Dim As Integer		editX, editY
 
 Dim As String		fileName
+
+' Functions
+Sub scalePut( ByVal dest As Any Ptr = 0, ByVal xPos As Integer, ByVal yPos As Integer, _
+	      ByVal w As Integer, ByVal h As Integer, ByVal image As Any Ptr )
+	If image = 0 Then
+		Return	
+	Endif
+	
+	Dim As Double sampleX
+	Dim As Double sampleY
+	
+	For y As Integer = 0 to h
+		For x As Integer = 0 to w
+			sampleX = (x/w)
+			sampleY = (y/h)
+			
+			PSet dest, ( xPos + x, yPos + y), sampleTexture(sampleX, sampleY, image)
+		Next
+	Next
+End Sub
 
 ' Load file specified on the commandline
 If Command(1) <> "" Then
@@ -49,7 +70,8 @@ Do
 				Line ( 16 + ( x*8 ), 16 + ( y*8 ) )-Step(8,8), rgb(255,255,255), BF
 				
 				uAtlas.setTexture( uMap.segment(x,y).textureID )
-				Put ( 16 + (x*8), 16 + (y*8) ), uAtlas.texture, (8,8)-STEP(8,8), PSET
+				'Put ( 16 + (x*8), 16 + (y*8) ), uAtlas.texture, (8,8)-STEP(8,8), PSET
+				scalePut(, 16+(x*8), 16+(y*8), 8, 8, uAtlas.texture )
 			Else
 				Line ( 16 + ( x*8 ), 16 + ( y*8 ) )-Step(8,8), rgb(0,0,0), BF
 			Endif
