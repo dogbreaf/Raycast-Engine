@@ -2,6 +2,7 @@
 '
 
 #include once "fbgfx.bi"
+#include once "file.bi"
 
 ' Free an image without risk of double freeing it 
 Sub safeFree( ByRef image As Any Ptr ) 
@@ -20,14 +21,22 @@ type metaTexture
 	texType		As textureType
 	
 	' Animated texture info
-	frameStart	As Integer
-	frameEnd	As Integer
+	frameStart	As LongInt
+	frameEnd	As LongInt
 	
 	' Large texture info
-	x		As Integer
-	y		As Integer
-	w		As Integer
-	h		As Integer
+	x		As LongInt
+	y		As LongInt
+	w		As LongInt
+	h		As LongInt
+end type
+
+' Texture atlas file header
+type textureAtlasHeader
+	identifier As LongInt = &hAAEE
+	
+	textureSize	As ULong
+	metaTextures	As ULong
 end type
 
 ' Texture atlas object
@@ -45,6 +54,12 @@ type textureAtlas
 	frameTimer	As Double	' Timer to track animated textures
 	frameNumber	As Integer	' Which frame of animated textures to display
 	
+	Declare Sub saveAtlas( ByVal As String )
+	Declare Sub loadAtlas( ByVal As String )
+	
+	Declare Sub save( ByVal As Integer )
+	Declare Sub load( ByVal As Integer )
+	
 	Declare Sub loadTextures( ByVal As String, ByVal As Integer = 256, ByVal As Integer = 256 )
 	Declare Sub setTexture( ByVal As Integer )
 	
@@ -54,6 +69,106 @@ type textureAtlas
 	Declare Constructor ()
 	Declare Destructor ()
 end type
+
+Sub textureAtlas.saveAtlas( ByVal fname As String )
+	If fname = "" Then
+		Return
+	Endif
+	
+	' Open a file and save the texture atlas data to it
+	Dim As Integer	hndl = FreeFile
+	
+	Open fname For Output As #hndl
+	
+	this.save(hndl)
+	
+	Close #hndl
+End Sub
+
+Sub textureAtlas.loadAtlas( ByVal fname As String )
+	' Safety checks
+	If fname = "" Then
+		Return
+	Endif
+	
+	If not fileexists(fname) Then
+		Return
+	Endif
+	
+	' Open a file and load the texture atlas data from it
+	Dim As Integer	hndl = FreeFile
+	
+	Open fname For Input As #hndl
+	
+	this.load(hndl)
+	
+	Close #hndl
+End Sub
+
+Sub textureAtlas.save( ByVal hndl As Integer )
+	' Check for an open file
+	If hndl = 0 Then
+		Return
+	Endif
+	
+	' Create and save a header
+	Dim As textureAtlasHeader	header
+	
+	header.metaTextures = UBound(this.mTexture)
+	header.textureSize = this.textureSize
+	
+	Put #hndl,, header
+	
+	' If there are meta-textures then save them
+	For i As Integer = 0 to UBound(this.mTexture)
+		Put #hndl,, this.mTexture(i)
+	Next
+	
+	' Now save the texture
+	Dim As Integer compression = CS_NONE
+	
+	' Use RLE for large images
+	If ( this.atlas->width > 256 ) or ( this.atlas->height > 256 ) Then
+		compression = CS_RLE
+	Endif
+	
+	storeImageData(hndl, this.atlas, compression)
+End Sub
+
+Sub textureAtlas.load( ByVal hndl As Integer )
+	' Make sure there is a file handle
+	If hndl = 0 Then
+		Return
+	Endif
+	
+	' Create and read a header
+	Dim As textureAtlasHeader	header
+	
+	Get #hndl,, header
+	
+	' Check the identifier
+	If header.identifier <> &hAAEE Then
+		Return
+	Endif
+	
+	' Set variables
+	this.textureSize = header.textureSize
+	
+	' Read any meta textures
+	If header.metaTextures > 0 Then
+		ReDim this.mTexture(header.metaTextures) As metaTexture
+		
+		For i As Integer = 0 to header.metaTextures
+			Get #hndl,, this.mTexture(i)
+		Next
+	Endif
+	
+	' Read the texture data
+	readImageData(hndl, this.atlas)
+	
+	' set the texture to ID 0
+	this.setTexture(0)
+End Sub
 
 Sub textureAtlas.loadTextures( ByVal fname As String, ByVal w As Integer = 256, ByVal h As Integer = 256 )
 	' Sanity check

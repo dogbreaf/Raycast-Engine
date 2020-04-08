@@ -1,8 +1,7 @@
+#include "headers/imagedata.bi"
 #include "headers/textureAtlas.bi"
 #include "headers/map.bi"
 #include "headers/raycast.bi"
-
-#include "headers/imagedata.bi"
 
 #include "headers/editor/arguments.bi"
 #include "headers/editor/utils.bi"
@@ -36,9 +35,6 @@ Endif
 If getArgument("-a") <> "" Then
 	uAtlas.loadTextures( getArgument("-a") )
 Endif
-
-uAtlas.addAnimatedTexture(0,4)
-uAtlas.addLargeTexture(10,10,32,60)
 
 ' Main Loop
 Do
