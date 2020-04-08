@@ -1,13 +1,13 @@
-#include "textureAtlas.bi"
-#include "map.bi"
-#include "raycast.bi"
+#include "headers/textureAtlas.bi"
+#include "headers/map.bi"
+#include "headers/raycast.bi"
 
 ScreenRes 640,480,32
 
 Dim As raycaster	test = raycaster(620,460,2)
 
-test.map.load("test.dat")
-test.atlas.loadTextures( "texture.bmp" )
+test.map.load("data/test.dat")
+test.atlas.loadTextures( "data/texture.bmp" )
 
 test.playerX = 6.5
 test.playerY = 3.5

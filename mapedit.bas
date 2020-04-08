@@ -1,6 +1,8 @@
-#include "textureAtlas.bi"
-#include "map.bi"
-#include "raycast.bi"
+#include "headers/textureAtlas.bi"
+#include "headers/map.bi"
+#include "headers/raycast.bi"
+
+#include "headers/editor/arguments.bi"
 
 #define __XRES 800
 #define __YRES 480
