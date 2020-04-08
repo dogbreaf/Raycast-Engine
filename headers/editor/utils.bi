@@ -13,7 +13,7 @@ Sub scalePut( ByVal dest As Any Ptr = 0, ByVal xPos As Integer, ByVal yPos As In
 			sampleX = (x/w)
 			sampleY = (y/h)
 			
-			PSet dest, ( xPos + x, yPos + y), sampleTexture(sampleX, sampleY, image)
+			PSet dest, ( xPos + x, yPos + y), sampleTexture(sampleX, sampleY, image, SI_NEAREST)
 		Next
 	Next
 End Sub

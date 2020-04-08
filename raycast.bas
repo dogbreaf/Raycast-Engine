@@ -9,6 +9,9 @@ Dim As raycaster	test = raycaster(620,460,2)
 test.map.load("data/test.dat")
 test.atlas.loadTextures( "data/texture.bmp" )
 
+test.atlas.addAnimatedTexture(0,4)
+test.atlas.addLargeTexture(10,10,32,60)
+
 test.playerX = 6.5
 test.playerY = 3.5
 test.playerA = _pi

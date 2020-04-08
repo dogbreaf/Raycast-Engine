@@ -35,17 +35,24 @@ If getArgument("-a") <> "" Then
 	uAtlas.loadTextures( getArgument("-a") )
 Endif
 
+uAtlas.addAnimatedTexture(0,4)
+uAtlas.addLargeTexture(10,10,32,60)
+
 ' Main Loop
 Do
 	ScreenLock
 	Line (0,0)-(__XRES,__YRES), rgb(30,30,30), BF
 	
 	' Draw the texture atlas
-	Put ( __XRES - uAtlas.atlas->width - 16, 64 ), uAtlas.atlas, PSET
-	Put ( __XRES - uAtlas.atlas->width - 16, 16 ), uAtlas.texture, PSET
+	Put (__XRES - uAtlas.atlas->width - 16, 64), uAtlas.atlas, PSET
+	scalePut (, __XRES - uAtlas.atlas->width - 16, 16, 32, 32, uAtlas.texture )
+	
+	Line (__XRES - uAtlas.atlas->width - 16 + uAtlas.textureX, 64 + uAtlas.textureY)-Step(32,32), rgb(0,255,0), B
 	
 	uAtlas.setTexture( uMap.segment(editX, editY).textureID )
-	Put ( __XRES - uAtlas.atlas->width + 32, 16 ), uAtlas.texture, PSET
+	scalePut (, __XRES - uAtlas.atlas->width + 32, 16, 32, 32, uAtlas.texture )
+	
+	Line (__XRES - uAtlas.atlas->width - 16 + uAtlas.textureX, 64 + uAtlas.textureY)-Step(32,32), rgb(0,255,255), B
 	
 	' Draw the map top-down
 	For y As Integer = 0 to uMap.mapH
@@ -54,7 +61,6 @@ Do
 				Line ( 16 + ( x*8 ), 16 + ( y*8 ) )-Step(8,8), rgb(255,255,255), BF
 				
 				uAtlas.setTexture( uMap.segment(x,y).textureID )
-				'Put ( 16 + (x*8), 16 + (y*8) ), uAtlas.texture, (8,8)-STEP(8,8), PSET
 				scalePut(, 16+(x*8), 16+(y*8), 8, 8, uAtlas.texture )
 			Else
 				Line ( 16 + ( x*8 ), 16 + ( y*8 ) )-Step(8,8), rgb(0,0,0), BF
@@ -93,6 +99,21 @@ Do
 				Endif
 			Loop Until inKey() <> ""
 		Endif
+	Endif
+	
+	' Set the tile ID manually
+	If Multikey(fb.SC_CONTROL) and Multikey(fb.SC_E) Then
+		Do:Sleep 1,1:Loop Until InKey() = ""
+		
+		Line (0,0)-(__XRES, 8), rgb(0,0,0), BF
+		
+		Dim As Integer ID
+		
+		Locate 1,1
+		Input "texture ID > ", ID
+		
+		uMap.segment( editX, editY ).solid = 1
+		uMap.segment( editX, editY ).textureID = ID
 	Endif
 	
 	' Save the map
