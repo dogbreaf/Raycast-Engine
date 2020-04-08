@@ -4,6 +4,10 @@
 #define __XRES 800
 #define __YRES 480
 
+
+' Initialisation
+ScreenRes __XRES,__YRES,32
+
 ' Variables
 Dim As textureAtlas	uAtlas
 Dim As gameMap		uMap = gameMap(32,32)
@@ -12,9 +16,6 @@ Dim As Integer		selectedTexture
 Dim As Integer		editX, editY
 
 Dim As String		fileName
-
-' Initialisation
-ScreenRes __XRES,__YRES,32
 
 ' Load file specified on the commandline
 If Command(1) <> "" Then
