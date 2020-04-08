@@ -4,13 +4,13 @@
 ' Represents a 1x1 segment of the map
 Type mapSegment
 	solid		As Byte
-	textureID	As Integer
+	textureID	As LongInt
 End Type
 
 ' The map
 type gameMap
-	mapW		As Integer
-	mapH		As Integer
+	mapW		As LongInt
+	mapH		As LongInt
 	
 	segment ( Any, Any )	As mapSegment
 	

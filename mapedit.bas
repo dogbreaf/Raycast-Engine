@@ -2,6 +2,8 @@
 #include "headers/map.bi"
 #include "headers/raycast.bi"
 
+#include "headers/imagedata.bi"
+
 #include "headers/editor/arguments.bi"
 #include "headers/editor/utils.bi"
 
