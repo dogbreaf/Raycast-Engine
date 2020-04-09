@@ -13,6 +13,7 @@ type mapEditor
 	editY			As Integer
 	
 	fileName		As String
+	atlasFile		As String
 	
 	' Show the editor
 	Declare Sub show()
@@ -39,6 +40,17 @@ Sub mapEditor.show()
 		
 		Line (__XRES - uAtlas->atlas->width - 16 + uAtlas->textureX, 64 + uAtlas->textureY)-Step(32,32), rgb(0,255,255), B
 		
+		' Draw some info 
+		Draw String ( __XRES - uAtlas->atlas->width - 16 + 100, 14), "TextureID:   " & textureID
+		Draw String ( __XRES - uAtlas->atlas->width - 16 + 100, 24), "Selected ID: " & uMap->segment(editX, editY).textureID
+		
+		Draw String ( __XRES - uAtlas->atlas->width - 16, 2 ), "Texture Atlas (Ctrl+A to edit)"
+		
+		Line ( __XRES - uAtlas->atlas->width - 32, 16 )-STEP(0,__YRES-32)
+		
+		'
+		Draw String ( 16, 2 ), "Map"
+		
 		' Draw the map top-down
 		For y As Integer = 0 to uMap->mapH
 			For x As Integer = 0 to uMap->mapW
@@ -57,6 +69,12 @@ Sub mapEditor.show()
 		ScreenUnlock
 		
 		' Input polling
+		If userHotkey( fb.SC_A, fb.SC_CONTROL ) Then
+			editAtlas(uAtlas, atlasFile)
+			
+			Do:Sleep 1,1:Loop Until not Multikey(1)
+		Endif
+		
 		If userHotkey( fb.SC_R, fb.SC_CONTROL ) Then
 			' Resize the map
 			blackBar()
@@ -66,8 +84,11 @@ Sub mapEditor.show()
 			Input "Map size (w,h) > ", inX, inY
 			
 			' Get confirmation
-			If getConfirm("This will clear the map, are you sure?") Then
-				uMap = new gameMap(inX,inY)
+			If (inX > 1) and (inY > 1) Then
+				If getConfirm("This will clear the map, are you sure?") Then
+					'Delete uMap
+					uMap = new gameMap(inX,inY)
+				Endif
 			Endif
 		Endif
 		
@@ -170,7 +191,7 @@ Sub mapEditor.show()
 		Endif
 		
 		' Don't lock up the system lmfao
-		Sleep 1,1
+		Sleep 10,1
 		
 	Loop Until Multikey(1)
 End Sub

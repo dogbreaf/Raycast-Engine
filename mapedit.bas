@@ -12,19 +12,13 @@
 #include "headers/editor/arguments.bi"
 #include "headers/editor/utils.bi"
 
-/'
-#include "headers/editor/uitk/ui.bi"
-#include "headers/editor/uitk/window.bi"
-#include "headers/editor/uitk/label.bi"
-#include "headers/editor/uitk/textinput.bi"
-#include "headers/editor/uitk/dialouge.bi"
-'/
-
 #include "headers/editor/atlasEditor.bi"
 #include "headers/editor/mapEditor.bi"
 
 ' Initialisation
 ScreenRes __XRES,__YRES,32
+
+LoadingIndicator("Loading...")
 
 ' Variables
 Dim As textureAtlas	uAtlas
@@ -33,44 +27,51 @@ Dim As gameMap		uMap = gameMap(32,32)
 Dim As Integer		selectedTexture
 Dim As Integer		editX, editY
 
-Dim As String		fileName
+Dim As String		mapFile
+Dim As String		atlasFile
 
 ' Editor windows
 Dim As mapEditor	thisMapEditor
 
 ' Load files specified on the commandline
-fileName = getArgument("-m")
+mapFile = getArgument("-m")
 
-If fileName <> "" Then
-	uMap.load( fileName )
+If mapFile <> "" Then
+	uMap.load( mapFile )
 Else
 	uMap = gameMap(32,32)
-	fileName = "untitled.dat"
+	mapFile = "untitled.dat"
 Endif
 
-debugPrint "File: " & fileName
-
-If getArgument("-t") <> "" Then
-	debugPrint "Load texture file..."
-	
+If getArgument("-t") <> "" Then	
 	' Load a texture file
 	uAtlas.loadTextures( getArgument("-t") )
+	atlasFile = getArgument("-t") & ".dat"
 	
 ElseIf getArgument("-a") <> "" Then
-	debugPrint "Load atlas file..."
-	
 	' Load an atlas
 	uAtlas.loadAtlas( getArgument("-a") )
+	atlasFile = getArgument("-a")
 	
 Else
 	debugPrint "Init empty atlas..."
+	atlasFile = "untitled.atlas.dat"
+	
 Endif
 
 ''''''''''''''''''''''''''
-thisMapEditor.uAtlas = @uAtlas
-thisMapEditor.uMap = @uMap
-thisMapEditor.fileName = fileName
-thisMapEditor.show()
-
+If getOption("--atlas-editor") Then
+	' Just edit the texture atlas
+	editAtlas(@uAtlas, atlasFile)
+Else
+	' Edit the map and texture atlas
+	thisMapEditor.uAtlas = @uAtlas
+	thisMapEditor.uMap = @uMap
+	thisMapEditor.fileName = mapFile
+	
+	thisMapEditor.atlasFile = atlasFile
+	
+	thisMapEditor.show()
+Endif
 ''''''''''''''''''''''''''
 

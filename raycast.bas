@@ -8,7 +8,7 @@ ScreenRes 640,480,32
 Dim As raycaster	test = raycaster(620,460,2)
 
 test.map.load("data/test.dat")
-test.atlas.loadAtlas("data/test.atlas")
+test.atlas.loadAtlas("data/test.atlas.dat")
 
 test.atlas.addAnimatedTexture(0,4)
 test.atlas.addLargeTexture(10,10,32,60)

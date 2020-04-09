@@ -60,7 +60,7 @@ type textureAtlas
 	Declare Sub save( ByVal As Integer )
 	Declare Sub load( ByVal As Integer )
 	
-	Declare Sub loadTextures( ByVal As String, ByVal As Integer = 256, ByVal As Integer = 256 )
+	Declare Sub loadTextures( ByVal As String, ByVal As Integer = -1, ByVal As Integer = -1 )
 	Declare Sub setTexture( ByVal As Integer )
 	
 	Declare Sub addLargeTexture( ByVal As Integer, ByVal As Integer, ByVal As Integer, ByVal As Integer )
@@ -155,7 +155,7 @@ Sub textureAtlas.load( ByVal hndl As Integer )
 	this.textureSize = header.textureSize
 	
 	' Read any meta textures
-	If header.metaTextures > 0 Then
+	If header.metaTextures >= 0 Then
 		ReDim this.mTexture(header.metaTextures) As metaTexture
 		
 		For i As Integer = 0 to header.metaTextures
@@ -170,10 +170,29 @@ Sub textureAtlas.load( ByVal hndl As Integer )
 	this.setTexture(0)
 End Sub
 
-Sub textureAtlas.loadTextures( ByVal fname As String, ByVal w As Integer = 256, ByVal h As Integer = 256 )
+Sub textureAtlas.loadTextures( ByVal fname As String, ByVal wIn As Integer = -1, ByVal hIn As Integer = -1 )
 	' Sanity check
-	If (fname = "") or ( w < 1 ) or ( h < 1 ) Then
+	If (fname = "") Then
 		Return
+	Endif
+	
+	' Get the texture size
+	Dim As Long w = wIn
+	Dim As Long h = hIn
+	
+	If (w = -1) or (h = -1) Then
+		Dim As Integer hndl = FreeFile
+		
+		Open fname For Input As #hndl 
+		
+		Get #hndl, 19, w
+		Get #hndl, 23, h
+		
+		Close #hndl
+		
+		If (w < 1) or (h < 1) Then
+			Return
+		Endif
 	Endif
 	
 	' Avoid re-allocating the same buffers
