@@ -30,3 +30,56 @@ Sub debugPrint( ByVal s As String )
 	Print #hndl, s
 End Sub
 
+' Let the user know something is happening
+Sub LoadingIndicator( ByVal line1 As String = "Loading...", ByVal line2 As String = "" )
+	Line ( (__XRES/2)-(Len(line1)*4)-4, (__YRES/2)-(12) )-STEP( (Len(line1)*8)+8, 24 ), rgb( 0, 0, 0 ), BF
+	Line ( (__XRES/2)-(Len(line1)*4)-4, (__YRES/2)-(12) )-STEP( (Len(line1)*8)+8, 24 ), rgb( 255, 255, 255 ), B
+	
+	Draw String ( (__XRES/2)-(len(line1)*4), (__YRES/2)-10 ), line1, rgb(255,255,255)
+	Draw String ( (__XRES/2)-(len(line2)*4), (__YRES/2) ), line2, rgb(255,255,255)
+End Sub
+
+' Hotkeys
+Function userHotkey( ByVal key As Integer, ByVal modifier As Integer = -1, ByVal block As Boolean = true ) As Boolean
+	Dim As Boolean	ret
+	
+	' Check if the key is pressed
+	If Multikey(key) and IIF( modifier = -1, -1, Multikey(modifier)) Then
+		ret = true
+		
+		' Prevent keys being repeated too quickly
+		Sleep 10,1
+	Endif
+	
+	' Wait for keyUp to prevent key repeats 
+	If block and ret Then
+		Do:Sleep 10,1:Loop Until (not Multikey(key)) and IIF(modifier = -1, -1, not Multikey(modifier))
+	Endif
+	
+	' Return true/false
+	Return ret
+End Function
+
+' The back bar for getting user input and sending messages to the user
+Sub blackBar()
+	Do:Sleep 1,1:Loop Until InKey() = ""
+	
+	Line (0,0)-(__XRES, 8), rgb(0,0,0), BF
+	Locate 1,1
+End Sub
+
+Function getConfirm( ByVal message As String ) As Boolean
+	blackBar()
+	Print message & " (Y/N)"
+	
+	Do
+		Sleep 1,1
+		
+		If Multikey(fb.SC_Y) Then
+			Return true
+		Endif
+	Loop Until inKey() <> ""
+	
+	Return false
+End Function
+

@@ -1,14 +1,27 @@
+' Game egine includes
 #include "headers/imagedata.bi"
 #include "headers/textureAtlas.bi"
 #include "headers/map.bi"
 #include "headers/raycast.bi"
 
+' Defines
+#define __XRES 1024
+#define __YRES 680
+
+' Editor includes
 #include "headers/editor/arguments.bi"
 #include "headers/editor/utils.bi"
 
-#define __XRES 800
-#define __YRES 480
+/'
+#include "headers/editor/uitk/ui.bi"
+#include "headers/editor/uitk/window.bi"
+#include "headers/editor/uitk/label.bi"
+#include "headers/editor/uitk/textinput.bi"
+#include "headers/editor/uitk/dialouge.bi"
+'/
 
+#include "headers/editor/atlasEditor.bi"
+#include "headers/editor/mapEditor.bi"
 
 ' Initialisation
 ScreenRes __XRES,__YRES,32
@@ -21,6 +34,9 @@ Dim As Integer		selectedTexture
 Dim As Integer		editX, editY
 
 Dim As String		fileName
+
+' Editor windows
+Dim As mapEditor	thisMapEditor
 
 ' Load files specified on the commandline
 fileName = getArgument("-m")
@@ -50,170 +66,11 @@ Else
 	debugPrint "Init empty atlas..."
 Endif
 
-' Main Loop
-Do
-	ScreenLock
-	Line (0,0)-(__XRES,__YRES), rgb(30,30,30), BF
-	
-	' Draw the texture atlas
-	Put (__XRES - uAtlas.atlas->width - 16, 64), uAtlas.atlas, PSET
-	scalePut (, __XRES - uAtlas.atlas->width - 16, 16, 32, 32, uAtlas.texture )
-	
-	Line (__XRES - uAtlas.atlas->width - 16 + uAtlas.textureX, 64 + uAtlas.textureY)-Step(32,32), rgb(0,255,0), B
-	
-	uAtlas.setTexture( uMap.segment(editX, editY).textureID )
-	scalePut (, __XRES - uAtlas.atlas->width + 32, 16, 32, 32, uAtlas.texture )
-	
-	Line (__XRES - uAtlas.atlas->width - 16 + uAtlas.textureX, 64 + uAtlas.textureY)-Step(32,32), rgb(0,255,255), B
-	
-	' Draw the map top-down
-	For y As Integer = 0 to uMap.mapH
-		For x As Integer = 0 to uMap.mapW
-			If uMap.segment(x,y).solid Then
-				Line ( 16 + ( x*8 ), 16 + ( y*8 ) )-Step(8,8), rgb(255,255,255), BF
-				
-				uAtlas.setTexture( uMap.segment(x,y).textureID )
-				scalePut(, 16+(x*8), 16+(y*8), 8, 8, uAtlas.texture )
-			Else
-				Line ( 16 + ( x*8 ), 16 + ( y*8 ) )-Step(8,8), rgb(0,0,0), BF
-			Endif
-		Next
-	Next
-	
-	' Draw the selection box
-	Line ( 16 + ( editX*8 ), 16 + ( editY*8 ) )-Step(8,8), rgb(255,0,0), B
-	ScreenUnLock
-	
-	' Get inputs
-	
-	' Resize the map
-	If Multikey(fb.SC_CONTROL) and Multikey(fb.SC_R) Then
-		Do:Sleep 1,1:Loop Until InKey() = ""
-		
-		Line (0,0)-(__XRES, 8), rgb(0,0,0), BF
-		
-		Dim As Integer inX, inY
-		
-		Locate 1,1
-		Input "Map size (w,h) > ", inX, inY
-		
-		If (inX > 1) and (inY > 1) Then
-			Line (0,0)-(__XRES, 8), rgb(0,0,0), BF
-			
-			Locate 1,1
-			Print "Changes will be lost, are you sure? Y/N"
-			
-			Do
-				Sleep 1,1
-				
-				If Multikey(fb.SC_Y) Then
-					uMap = gameMap(inX,inY)
-				Endif
-			Loop Until inKey() <> ""
-		Endif
-	Endif
-	
-	' Set the tile ID manually
-	If Multikey(fb.SC_CONTROL) and Multikey(fb.SC_E) Then
-		Do:Sleep 1,1:Loop Until InKey() = ""
-		
-		Line (0,0)-(__XRES, 8), rgb(0,0,0), BF
-		
-		Dim As Integer ID
-		
-		Locate 1,1
-		Input "texture ID > ", ID
-		
-		uMap.segment( editX, editY ).solid = 1
-		uMap.segment( editX, editY ).textureID = ID
-	Endif
-	
-	' Save the map
-	If Multikey(fb.SC_CONTROL) and Multikey(fb.SC_S) Then
-		Do:Sleep 1,1:Loop Until InKey() = ""
-		
-		Dim As String fname
-		
-		Line (0,0)-(__XRES, 8), rgb(0,0,0), BF
-		Locate 1,1
-		Print "File Name? (" & fileName & ") > ";
-		Input "", fname
-		
-		If fname <> "" Then
-			fileName = fname
-		Endif
-		
-		uMap.save(fileName)
-		
-		Line (0,0)-(__XRES, 8), rgb(0,0,0), BF
-		Locate 1,1
-		Print "Saved as " & fileName & " (Probably...)"
-		
-		Sleep 1000
-	Endif
-	
-	' Select a texture
-	If Multikey(fb.SC_PAGEUP) Then
-		selectedTexture += 1
-		Do:Sleep 1,1:Loop Until not Multikey(fb.SC_PAGEUP)
-	EndIf
-	If Multikey(fb.SC_PAGEDOWN) Then
-		SelectedTexture -= 1
-		Do:Sleep 1,1:Loop Until not Multikey(fb.SC_PAGEDOWN)
-	Endif
-	
-	If selectedTexture < 0 Then
-		selectedTexture = 0
-	ElseIf selectedTexture > ( uAtlas.atlas->width/uAtlas.textureSize ) * ( uAtlas.atlas->height/uAtlas.textureSize ) Then
-		selectedTexture = ( uAtlas.atlas->width/uAtlas.textureSize ) * ( uAtlas.atlas->height/uAtlas.textureSize )
-	Endif
-	
-	uAtlas.setTexture(selectedTexture)
-	
-	' Edit
-	If Multikey(fb.SC_W) Then
-		editY -= 1
-		Do:Sleep 1,1:Loop Until not Multikey(fb.SC_W)
-	EndIf
-	If Multikey(fb.SC_S) Then
-		editY += 1
-		Do:Sleep 1,1:Loop Until not Multikey(fb.SC_S)
-	Endif
-	If Multikey(fb.SC_A) Then
-		editX -= 1
-		Do:Sleep 1,1:Loop Until not Multikey(fb.SC_A)
-	EndIf
-	If Multikey(fb.SC_D) Then
-		editX += 1
-		Do:Sleep 1,1:Loop Until not Multikey(fb.SC_D)
-	Endif
-	
-	If editX < 0 Then
-		editX = 0
-	ElseIf editX > uMap.mapW Then
-		editX = uMap.mapW
-	Endif
-	
-	If editY < 0 Then
-		editY = 0
-	ElseIf editY > uMap.mapH Then
-		editY = uMap.mapH
-	Endif
-	
-	'
-	If Multikey(fb.SC_Q) Then
-		uMap.segment(editX, editY).solid = 0
-		uMap.segment(editX, editY).textureID = 0
-		
-		Sleep 1,1
-	EndIf
-	If Multikey(fb.SC_E) Then
-		uMap.segment(editX, editY).solid = 1
-		uMap.segment(editX, editY).textureID = selectedTexture
-		
-		Sleep 1,1
-	Endif
-	
-	Sleep 1,1
-Loop Until Multikey(1)
+''''''''''''''''''''''''''
+thisMapEditor.uAtlas = @uAtlas
+thisMapEditor.uMap = @uMap
+thisMapEditor.fileName = fileName
+thisMapEditor.show()
+
+''''''''''''''''''''''''''
 
