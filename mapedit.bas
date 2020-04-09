@@ -23,7 +23,7 @@ Dim As Integer		editX, editY
 Dim As String		fileName
 
 ' Load files specified on the commandline
-fileName = getLastArgument()
+fileName = getArgument("-m")
 
 If fileName <> "" Then
 	uMap.load( fileName )
@@ -32,8 +32,22 @@ Else
 	fileName = "untitled.dat"
 Endif
 
-If getArgument("-a") <> "" Then
-	uAtlas.loadTextures( getArgument("-a") )
+debugPrint "File: " & fileName
+
+If getArgument("-t") <> "" Then
+	debugPrint "Load texture file..."
+	
+	' Load a texture file
+	uAtlas.loadTextures( getArgument("-t") )
+	
+ElseIf getArgument("-a") <> "" Then
+	debugPrint "Load atlas file..."
+	
+	' Load an atlas
+	uAtlas.loadAtlas( getArgument("-a") )
+	
+Else
+	debugPrint "Init empty atlas..."
 Endif
 
 ' Main Loop

@@ -18,3 +18,15 @@ Sub scalePut( ByVal dest As Any Ptr = 0, ByVal xPos As Integer, ByVal yPos As In
 	Next
 End Sub
 
+Sub debugPrint( ByVal s As String )
+	Static As Integer hndl
+	
+	If hndl = 0 Then
+		hndl = FreeFile
+		
+		Open Cons for Output As #hndl
+	Endif
+	
+	Print #hndl, s
+End Sub
+

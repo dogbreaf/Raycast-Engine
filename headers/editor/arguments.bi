@@ -39,7 +39,7 @@ Function getLastArgument() As String
 		argNum += 1
 		
 		If Command(argNum) = "" Then
-			Return Command(argNum - 1)
+			Return Command(argNum)
 		Endif
 	Loop
 End Function
