@@ -268,10 +268,13 @@ Sub raycaster.draw()
 		                        Dim As Double TestPointX = PlayerX + EyeX * DistanceToWall
 		                        Dim As Double TestPointY = PlayerY + EyeY * DistanceToWall
 		                        
+		                        Dim As Double textureX = TestPointX - TestX
+		                        Dim As Double textureY = TestPointY - TestY
+		                        
 		                        ' This is a hack, there is a smart way to do this but it works
 		                        ' acceptably. This will result in mirrored textures on some faces but IDC right now
-		                        If abs(TestPointY - TestY) < abs(TestPointX - TestX) Then
-		                        	sampleX = TestPointY - TestY
+		                        If abs(textureX) > abs(textureY) Then
+		                        	sampleX = textureY
 		                        Else
 		                        	sampleX = TestPointX - TestX
 		                        Endif
