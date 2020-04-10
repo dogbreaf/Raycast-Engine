@@ -59,6 +59,10 @@ Function sampleTexture( ByVal sx As Double, _
 			
         Dim As UInteger ret
         
+        If b = 0 Then
+        	Return 0
+        Endif
+        
         Select Case method
         
         Case SI_NEAREST
@@ -179,13 +183,18 @@ type raycaster
 	
 	FOV		As Double = _pi/4
 	
+	farPlane	As Double = 2
+	nearPlane	As Double = 0.01
+	
 	drawDistance	As Double = 20
+	
+	drawFloor	As Boolean = true
 	
 	' Timing
 	frameTime	As Double
 	frameRate	As Double
 	
-	' Image buffer
+	' Image buffers
 	screenBuffer	As fb.image Ptr
 	
 	' Constructor to initialise the screen buffer
@@ -224,6 +233,53 @@ Destructor raycaster ()
 End Destructor
 
 Sub raycaster.draw()
+	' Clear the buffer
+	Line this.screenBuffer, (0,0)-(this.renderW, this.renderH), rgb(0,0,0), BF
+	
+	' Render the floor
+	' Unlike the raycasting code I haven't fully wrapped my head around this yet
+	If this.drawFloor Then
+		' Grab the current floor texture
+		this.atlas.setTexture( this.map.segment( CInt(playerX), CInt(playerY) ).textureID )
+		
+		' Calculate the fustrum
+		Dim As Double FarX1 = PlayerX + sin( PlayerA - (FOV/2) ) * farPlane
+		Dim As Double FarY1 = PlayerY + cos( PlayerA - (FOV/2) ) * farPlane
+		
+		Dim As Double FarX2 = PlayerX + sin( PlayerA + (FOV/2) ) * farPlane
+		Dim As Double FarY2 = PlayerY + cos( PlayerA + (FOV/2) ) * farPlane
+		
+		Dim As Double NearX1 = PlayerX + sin( PlayerA - (FOV/2) ) * nearPlane
+		Dim As Double NearY1 = PlayerY + cos( PlayerA - (FOV/2) ) * nearPlane
+		
+		Dim As Double NearX2 = PlayerX + sin( PlayerA + (FOV/2) ) * nearPlane
+		Dim As Double NearY2 = PlayerY + cos( PlayerA + (FOV/2) ) * nearPlane
+		
+		' Render the texture projection
+		For y As Integer = 0 to renderH/2
+			Dim As Double sampleDepth = y/(renderH/2)
+			
+			Dim As Double startX = (farX1-nearX1) / SampleDepth + nearX1
+			Dim As Double startY = (farY1-nearY1) / SampleDepth + nearY1
+			
+			Dim As Double endX = (farX2-nearX2) / SampleDepth + nearX2
+			Dim As Double endY = (farY2-nearY2) / SampleDepth + nearY2
+			
+			For x As Integer = 0 to renderW
+				Dim As Double sampleWidth = x/renderW
+				
+				Dim As Double sampleX = (endX - startX) * sampleWidth + startX
+				Dim As Double sampleY = (endY - startY) * sampleWidth + startY
+				
+				Dim As UInteger sample = sampleTexture( abs(sampleX), abs(sampleY), this.atlas.texture, SI_NEAREST )
+				Dim As UInteger shade = 128+(128*sampleDepth)
+				
+				Line screenBuffer, (x*renderScale,(y + (renderH/2))*renderScale)-Step(this.renderScale, this.renderScale), _
+					shadePixel(sample, shade), BF
+			Next
+		Next
+	Endif
+	
 	' Cast rays and render to the buffer
 	For x As Double = 0 to this.renderW
 		' Variables we need
@@ -302,7 +358,12 @@ Sub raycaster.draw()
 			ElseIf y > Floor Then
 				' This is floor, shade it with a gradient for now
 				shade = 255-(255*(this.renderH/y))
-				outputPixel = rgb( shade, shade, shade )
+				
+				If drawFloor then
+					outputPixel = rgb(255,0,255)
+				Else
+					outputPixel = rgb( shade, shade, shade )
+				Endif
 				
 			Else
 				' This is the wall, calculate the shading depending on distance to the wall
@@ -320,7 +381,9 @@ Sub raycaster.draw()
 			Endif
 			
 			' Draw to the buffer
-			Line this.screenBuffer, (x*this.renderScale,y*this.renderScale)-STEP(this.renderScale, this.renderScale), outputPixel, BF
+			If outputPixel <> rgb(255,0,255) Then
+				Line this.screenBuffer, (x*this.renderScale,y*this.renderScale)-STEP(this.renderScale, this.renderScale), outputPixel, BF
+			Endif
                 Next
 	Next
 End Sub
