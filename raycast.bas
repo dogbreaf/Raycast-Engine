@@ -17,6 +17,8 @@ Else
 	logError( test.atlas.loadAtlas("data/test.atlas.dat"), __errorTrace, true )
 Endif
 
+test.fogColor = rgb(255,0,180)
+
 test.playerX = 6.5
 test.playerY = 3.5
 test.playerA = 0
@@ -32,6 +34,15 @@ Do
 	
 	test.draw()
 	test.update()
+	
+	If Multikey(fb.SC_UP) Then
+		test.drawDistance += 0.5
+		sleep 100,1
+	Endif
+	If Multikey(fb.SC_DOWN) Then
+		test.drawDistance -= 0.5
+		sleep 100,1
+	Endif
 	
 	If Multikey(fb.SC_F12) Then
 		Print "Taking screenshot..."

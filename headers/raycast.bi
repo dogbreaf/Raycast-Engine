@@ -144,23 +144,45 @@ Function sampleTexture( ByVal sx As Double, _
 End Function
 
 ' Shade a texture sample
-Function shadePixel( ByVal colour As UInteger, ByVal shade As uByte ) As UInteger
+Function shadePixel( ByVal colour As UInteger, ByVal shade As uByte, ByVal fog As UInteger = rgb(0,0,0)) As UInteger
         Dim As tPixel c1
+        Dim As tPixel c2
         Dim As UInteger r,g,b,a
         
         c1.value = colour
+        c2.value = fog
         
+        /'
+        ' Old way results in darker parts being made too dark
         r = c1.r-(255-shade)
         g = c1.g-(255-shade)
         b = c1.b-(255-shade)
         a = c1.a-(255-shade)
+        '/
+
+	r = c1.r*(shade/255)
+	g = c1.g*(shade/255)
+	b = c1.b*(shade/255)
+	a = c1.a*(shade/255)
+		
+	If fog <> 0 Then
+		c2.r = c2.r*((255-shade)/255)
+		c2.g = c2.g*((255-shade)/255)
+		c2.b = c2.b*((255-shade)/255)
+		c2.a = c2.a*((255-shade)/255)
+		
+		r += c2.r
+		g += c2.g
+		b += c2.b
+		a += c2.a
+	Endif
         
         r = IIF(r > 255, 0, r)
         g = IIF(g > 255, 0, g)
         b = IIF(b > 255, 0, b)
         a = IIF(a > 255, 0, a)
         
-        Return colour 'rgba(r, g, b, a)
+        Return rgba(r, g, b, a)
 End Function
 
 ' Do the raycasting
@@ -189,6 +211,8 @@ type raycaster
 	drawDistance	As Double = 20
 	
 	drawFloor	As Boolean = true
+	
+	fogColor	As ULong
 	
 	' Timing
 	frameTime	As Double
@@ -291,11 +315,22 @@ Function raycaster.draw() As errorCode
 				
 				logError(retCode, __errorTrace, false)
 				
+				' Sample the texture
 				Dim As UInteger sample = sampleTexture( abs(sampleX), abs(sampleY), this.atlas.texture, SI_NEAREST )
-				Dim As UInteger shade = 128+(128*sampleDepth)
 				
+				' Calculate the distance from the player
+				Dim As Double distance = sqr( (( playerX-sampleX ) ^ 2) + (( playerY-sampleY ) ^ 2) )
+				
+				' Shade it accordingly
+				Dim As UInteger shade = 255-(255*(distance/drawDistance))
+				
+				If sampleDepth > drawDistance Then
+					shade = 0
+				Endif
+				
+				' Put it on the buffer
 				Line screenBuffer, (x*renderScale,(y + (renderH/2))*renderScale)-Step(this.renderScale, this.renderScale), _
-					shadePixel(sample, shade), BF
+					shadePixel(sample, shade, this.fogColor), BF
 			Next
 		Next
 	Endif
@@ -373,7 +408,7 @@ Function raycaster.draw() As errorCode
                 For y As Integer = 0 to this.renderH
 			If y < Ceiling Then
 				' This is the sky, leave it blank for now
-				outputPixel = rgb( 0, 0, 0 )
+				outputPixel = this.fogColor
 				
 			ElseIf y > Floor Then
 				' This is floor, shade it with a gradient for now
@@ -385,6 +420,8 @@ Function raycaster.draw() As errorCode
 					outputPixel = rgb( shade, shade, shade )
 				Endif
 				
+			ElseIf distanceToWall >= drawDistance Then
+				outputPixel = this.fogColor
 			Else
 				' This is the wall, calculate the shading depending on distance to the wall
 				shade = 255-(255*(distanceToWall/drawDistance))
@@ -398,7 +435,7 @@ Function raycaster.draw() As errorCode
 				
 				' Sample the texture
 				outputPixel = sampleTexture( sampleX, sampleY, this.atlas.texture, SI_NEAREST )
-				outputPixel = shadePixel( outputPixel, shade )
+				outputPixel = shadePixel( outputPixel, shade, this.fogColor )
 			Endif
 			
 			' Draw to the buffer
