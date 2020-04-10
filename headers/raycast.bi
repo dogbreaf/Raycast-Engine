@@ -238,10 +238,7 @@ Sub raycaster.draw()
 	
 	' Render the floor
 	' Unlike the raycasting code I haven't fully wrapped my head around this yet
-	If this.drawFloor Then
-		' Grab the current floor texture
-		this.atlas.setTexture( this.map.segment( CInt(playerX), CInt(playerY) ).textureID )
-		
+	If this.drawFloor Then		
 		' Calculate the fustrum
 		Dim As Double FarX1 = PlayerX + sin( PlayerA - (FOV/2) ) * farPlane
 		Dim As Double FarY1 = PlayerY + cos( PlayerA - (FOV/2) ) * farPlane
@@ -273,6 +270,9 @@ Sub raycaster.draw()
 				
 				Dim As UInteger sample = sampleTexture( abs(sampleX), abs(sampleY), this.atlas.texture, SI_NEAREST )
 				Dim As UInteger shade = 128+(128*sampleDepth)
+				
+				' Grab the current floor texture
+				this.atlas.setTexture( this.map.segment( CInt(sampleX), CInt(sampleY) ).textureID )
 				
 				Line screenBuffer, (x*renderScale,(y + (renderH/2))*renderScale)-Step(this.renderScale, this.renderScale), _
 					shadePixel(sample, shade), BF

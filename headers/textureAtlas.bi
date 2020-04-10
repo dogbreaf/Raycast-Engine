@@ -54,6 +54,9 @@ type textureAtlas
 	frameTimer	As Double	' Timer to track animated textures
 	frameNumber	As Integer	' Which frame of animated textures to display
 	
+	selectedID	As Integer	' the current ID
+	previousID	As Integer	' the previous ID
+	
 	Declare Sub saveAtlas( ByVal As String )
 	Declare Sub loadAtlas( ByVal As String )
 	
@@ -220,6 +223,14 @@ Sub textureAtlas.setTexture( ByVal ID As Integer )
 		
 		frameTimer = timer
 	Endif
+	
+	' Only update if the id is different
+	If ID = previousID Then
+		Return
+	Endif
+	
+	previousID = selectedID
+	selectedID = ID
 	
 	' Make sure that the texture buffers have been initialised
 	If (this.atlas = 0) Then
