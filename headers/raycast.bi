@@ -201,8 +201,8 @@ type raycaster
 	Declare Constructor ( ByVal As Integer, ByVal As Integer, ByVal As Integer = 1 )
 	Declare Destructor ()
 	
-	Declare Sub draw()
-	Declare Sub update()
+	Declare Function draw() As errorCode
+	Declare Function update() As errorCode
 end type
 
 Constructor raycaster ( ByVal w As Integer, ByVal h As Integer, ByVal s As Integer = 1 )
@@ -232,7 +232,14 @@ Destructor raycaster ()
 	Endif
 End Destructor
 
-Sub raycaster.draw()
+Function raycaster.draw() As errorCode
+	Dim As errorCode retCode
+	
+	' Make sure the buffer exists
+	If this.screenBuffer = 0 Then
+		Return E_NO_BUFFER
+	Endif
+	
 	' Clear the buffer
 	Line this.screenBuffer, (0,0)-(this.renderW, this.renderH), rgb(0,0,0), BF
 	
@@ -268,11 +275,24 @@ Sub raycaster.draw()
 				Dim As Double sampleX = (endX - startX) * sampleWidth + startX
 				Dim As Double sampleY = (endY - startY) * sampleWidth + startY
 				
-				Dim As UInteger sample = sampleTexture( abs(sampleX), abs(sampleY), this.atlas.texture, SI_NEAREST )
-				Dim As UInteger shade = 128+(128*sampleDepth)
+				Dim As Integer mapX = abs(CInt(sampleX))
+				Dim As Integer mapY = abs(CInt(sampleY))
 				
 				' Grab the current floor texture
-				this.atlas.setTexture( this.map.segment( CInt(sampleX), CInt(sampleY) ).textureID )
+				If (mapX < this.map.mapW) and (mapY < this.map.mapH) Then
+					If this.map.segment( mapX, mapY).solid = 0 Then
+						retCode = this.atlas.setTexture( this.map.segment( mapX, mapY).textureID )
+					Else
+						retCode = this.atlas.setTexture(0)
+					Endif
+				Else
+					retCode = this.atlas.setTexture( 0 )
+				Endif
+				
+				logError(retCode, __errorTrace, false)
+				
+				Dim As UInteger sample = sampleTexture( abs(sampleX), abs(sampleY), this.atlas.texture, SI_NEAREST )
+				Dim As UInteger shade = 128+(128*sampleDepth)
 				
 				Line screenBuffer, (x*renderScale,(y + (renderH/2))*renderScale)-Step(this.renderScale, this.renderScale), _
 					shadePixel(sample, shade), BF
@@ -373,7 +393,8 @@ Sub raycaster.draw()
 				SampleY = ((y-ceiling)/(this.renderH-(ceiling*2)))
 				
 				' Set the texture atlas
-				this.atlas.setTexture( mapSegment->textureID )
+				retCode = this.atlas.setTexture( mapSegment->textureID )
+				logError(retCode, __errorTrace, false)
 				
 				' Sample the texture
 				outputPixel = sampleTexture( sampleX, sampleY, this.atlas.texture, SI_NEAREST )
@@ -386,9 +407,11 @@ Sub raycaster.draw()
 			Endif
                 Next
 	Next
-End Sub
+	
+	Return E_NO_ERROR
+End Function
 
-Sub raycaster.update()
+Function raycaster.update() As errorCode
 	' Update the player position
 	
 	' Calculate frame delta and framerate
@@ -443,5 +466,8 @@ Sub raycaster.update()
         
         ' Track the time we last update the inputs
         frameTime = timer
-End Sub
+        
+        '
+        Return E_NO_ERROR
+End Function
 

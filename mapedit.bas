@@ -1,4 +1,6 @@
 ' Game egine includes
+#include "headers/errors.bi"
+
 #include "headers/imagedata.bi"
 #include "headers/textureAtlas.bi"
 #include "headers/map.bi"
