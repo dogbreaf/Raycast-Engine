@@ -54,11 +54,11 @@ Sub mapEditor.show()
 		' Draw the map top-down
 		For y As Integer = 0 to uMap->mapH
 			For x As Integer = 0 to uMap->mapW
+				uAtlas->setTexture( uMap->segment(x,y).textureID )
+				scalePut(, 16+(x*8), 16+(y*8), 8, 8, uAtlas->texture )
+					
 				If uMap->segment(x,y).solid Then
-					uAtlas->setTexture( uMap->segment(x,y).textureID )
-					scalePut(, 16+(x*8), 16+(y*8), 8, 8, uAtlas->texture )
-				Else
-					Line ( 16 + ( x*8 ), 16 + ( y*8 ) )-Step(8,8), rgb(0,0,0), BF
+					Line ( 16 + ( x*8 ), 16 + ( y*8 ) )-Step(8,8), rgb(255,0,120), B
 				Endif
 			Next
 		Next

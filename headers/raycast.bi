@@ -160,7 +160,7 @@ Function shadePixel( ByVal colour As UInteger, ByVal shade As uByte ) As UIntege
         b = IIF(b > 255, 0, b)
         a = IIF(a > 255, 0, a)
         
-        Return rgba(r, g, b, a)
+        Return colour 'rgba(r, g, b, a)
 End Function
 
 ' Do the raycasting
@@ -275,11 +275,11 @@ Function raycaster.draw() As errorCode
 				Dim As Double sampleX = (endX - startX) * sampleWidth + startX
 				Dim As Double sampleY = (endY - startY) * sampleWidth + startY
 				
-				Dim As Integer mapX = abs(CInt(sampleX))
-				Dim As Integer mapY = abs(CInt(sampleY))
+				Dim As Integer mapX = CInt(sampleX)
+				Dim As Integer mapY = CInt(sampleY)
 				
 				' Grab the current floor texture
-				If (mapX < this.map.mapW) and (mapY < this.map.mapH) Then
+				If (mapX < this.map.mapW) and (mapY < this.map.mapH) and (mapX > 0) and (mapY > 0) Then
 					If this.map.segment( mapX, mapY).solid = 0 Then
 						retCode = this.atlas.setTexture( this.map.segment( mapX, mapY).textureID )
 					Else

@@ -208,7 +208,7 @@ Function readImageData( ByVal hndl As Integer, ByRef image As Any Ptr ) As error
 			If eof(hndl) Then
 				Return E_FILE_ENDED_UNEXPECTEDLY
 			Endif
-		Loop Until ( x >= header.width ) and ( y >= header.height )
+		Loop Until ( x >= header.width ) and ( y >= header.height-1 )
 		
 	Case Else
 		Return E_BAD_DATA

@@ -7,14 +7,19 @@
 
 ScreenRes 800,600,32
 
-Dim As raycaster	test = raycaster(780,580,3)
+Dim As raycaster	test = raycaster(780,580,4)
 
-test.map.load("data/test.dat")
-logError( test.atlas.loadAtlas("data/test.atlas.dat"), __errorTrace, true )
+If command(1) <> "" Then
+	test.map.load(command(1))
+	logError( test.atlas.loadAtlas(command(2)), __errorTrace, true )
+Else
+	test.map.load("data/test.dat")
+	logError( test.atlas.loadAtlas("data/test.atlas.dat"), __errorTrace, true )
+Endif
 
 test.playerX = 6.5
 test.playerY = 3.5
-test.playerA = _pi
+test.playerA = 0
 
 Do
 	ScreenLock
@@ -27,6 +32,42 @@ Do
 	
 	test.draw()
 	test.update()
+	
+	If Multikey(fb.SC_F12) Then
+		Print "Taking screenshot..."
+		
+		Dim As Integer cx,cy,cs
+		Dim As Integer resX = 3840, resy = 2160
+		
+		cx = test.renderW
+		cy = test.renderH
+		cs = test.renderScale
+		
+		test.renderW = resX
+		test.renderH = resY
+		test.renderScale = 1
+		
+		If test.screenBuffer <> 0 Then
+			ImageDestroy(test.screenBuffer):test.screenBuffer = 0
+		Endif
+		test.screenBuffer = ImageCreate(resX,resY)
+		
+		test.draw()
+		
+		BSave "Screenshot" & Hex(Rnd()*(2^32)) & ".bmp", test.screenBuffer
+		
+		test.renderW = cx
+		test.renderH = cy
+		test.renderScale = cs
+		
+		If test.screenBuffer <> 0 Then
+			ImageDestroy(test.screenBuffer):test.screenBuffer = 0
+		Endif
+		test.screenBuffer = ImageCreate(cx*cs,cy*cs)
+		
+		Print "Done."
+		Sleep 100,1
+	Endif
 	
 	Sleep 1,1
 Loop Until Multikey(1)
