@@ -39,7 +39,7 @@ Dim As mapEditor	thisMapEditor
 mapFile = getArgument("-m")
 
 If mapFile <> "" Then
-	uMap.load( mapFile )
+	errorDialouge(uMap.load( mapFile ), __errorTrace)
 Else
 	uMap = gameMap(32,32)
 	mapFile = "untitled.dat"
@@ -47,12 +47,12 @@ Endif
 
 If getArgument("-t") <> "" Then	
 	' Load a texture file
-	uAtlas.loadTextures( getArgument("-t") )
+	errorDialouge(uAtlas.loadTextures( getArgument("-t") ), __errorTrace)
 	atlasFile = getArgument("-t") & ".dat"
 	
 ElseIf getArgument("-a") <> "" Then
 	' Load an atlas
-	uAtlas.loadAtlas( getArgument("-a") )
+	errorDialouge(uAtlas.loadAtlas( getArgument("-a") ), __errorTrace)
 	atlasFile = getArgument("-a")
 	
 Else

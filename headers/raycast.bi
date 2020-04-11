@@ -25,10 +25,12 @@ End Enum
 
 ' Much faster than point()
 Function fastPoint( ByVal x As Integer, ByVal y As Integer, ByVal b As fb.Image Ptr ) As UInteger
-	Dim As UInteger Ptr ret = new UInteger
+	Dim As UInteger Ptr ret
 	
 	If ( x < b->width ) and ( y < b->height ) Then
 		ret = ( cast(Any Ptr, b) + sizeOf(fb.Image) + b->pitch * y + b->bpp * x )
+	Else
+		Return 0
 	Endif
 	
 	Return *ret
@@ -56,7 +58,7 @@ Function sampleTexture( ByVal sx As Double, _
 			ByVal sy As Double, _
 			ByVal b As fb.Image Ptr, _
 			ByVal method As sampleInterpolation = SI_NEAREST ) As UInteger
-			
+	
         Dim As UInteger ret
         
         If b = 0 Then
@@ -345,7 +347,7 @@ Function raycaster.draw() As errorCode
 				logError(retCode, __errorTrace, false)
 				
 				' Sample the texture
-				Dim As UInteger sample = sampleTexture( abs(sampleX), abs(sampleY), this.atlas.texture, SI_NEAREST )
+				Dim As UInteger sample = sampleTexture( abs(sampleX+0.5), abs(sampleY+0.5), this.atlas.texture, SI_NEAREST )
 				
 				' Calculate the distance from the player
 				Dim As Double distance = sqr( (( playerX-sampleX ) ^ 2) + (( playerY-sampleY ) ^ 2) )

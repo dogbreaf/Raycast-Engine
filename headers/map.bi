@@ -127,10 +127,6 @@ Function gameMap.save( ByVal fname As String ) As errorCode
 			If err <> 0 Then
 				Return E_FILEIO_FAILED
 			Endif
-			
-			If eof(hndl) Then
-				Return E_FILE_ENDED_UNEXPECTEDLY
-			Endif
 	
 			Put #hndl,, this.segment( x, y )
 		Next

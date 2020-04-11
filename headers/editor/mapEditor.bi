@@ -23,7 +23,7 @@ end type
 
 Sub mapEditor.show()
 	Do
-		ScreenLock
+		ScreenLock		
 		' Clear the screen
 		Line (0,0)-(__XRES,__YRES), rgb(30,30,30), BF
 	
@@ -39,7 +39,7 @@ Sub mapEditor.show()
 		scalePut (, __XRES - uAtlas->atlas->width + 32, 16, 32, 32, uAtlas->texture )
 		
 		Line (__XRES - uAtlas->atlas->width - 16 + uAtlas->textureX, 64 + uAtlas->textureY)-Step(32,32), rgb(0,255,255), B
-		
+
 		' Draw some info 
 		Draw String ( __XRES - uAtlas->atlas->width - 16 + 100, 14), "TextureID:   " & textureID
 		Draw String ( __XRES - uAtlas->atlas->width - 16 + 100, 24), "Selected ID: " & uMap->segment(editX, editY).textureID
@@ -51,10 +51,14 @@ Sub mapEditor.show()
 		'
 		Draw String ( 16, 2 ), "Map"
 		
+		Draw String (100, 2), "Pos: " & editX & ", " & editY
+		
 		' Draw the map top-down
 		For y As Integer = 0 to uMap->mapH
 			For x As Integer = 0 to uMap->mapW
-				uAtlas->setTexture( uMap->segment(x,y).textureID )
+				uAtlas->previousID = -1
+				
+				logError(uAtlas->setTexture( uMap->segment(x,y).textureID ), __errorTrace, false)
 				scalePut(, 16+(x*8), 16+(y*8), 8, 8, uAtlas->texture )
 					
 				If uMap->segment(x,y).solid Then
@@ -67,7 +71,7 @@ Sub mapEditor.show()
 		Line ( 16 + ( editX*8 ), 16 + ( editY*8 ) )-Step(8,8), rgb(255,0,0), B
 		
 		ScreenUnlock
-		
+
 		' Input polling
 		If userHotkey( fb.SC_A, fb.SC_CONTROL ) Then
 			editAtlas(uAtlas, atlasFile)
@@ -122,9 +126,14 @@ Sub mapEditor.show()
 			
 			LoadingIndicator("Saving...")
 			
-			uMap->save(fileName)
+			Dim As Integer e = uMap->save(fileName)
+			If e Then
+				LoadingIndicator("Could not save map.")
+				errorDialouge(e, __errorTrace)
+			Else			
+				LoadingIndicator("Saved.")
+			Endif
 			
-			LoadingIndicator("Saved. (probably)")
 			Sleep 1000
 		Endif
 		

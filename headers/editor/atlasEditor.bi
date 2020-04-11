@@ -24,6 +24,8 @@ Sub editAtlas( ByRef uAtlas As textureAtlas Ptr, ByVal fileName As String = "unt
 		Draw String (32+uAtlas->atlas->width,88), "Meta Textures"
 		Draw String (48+uAtlas->atlas->width+256,88), "Selected"
 		
+		uAtlas->setTexture(0)
+		
 		If (UBound(uAtlas->mTexture) >= 0) Then
 			uAtlas->setTexture(listSelection + 2048)
 			scalePut(,48+uAtlas->atlas->width+256,100,32,32,uAtlas->texture)
@@ -87,9 +89,15 @@ Sub editAtlas( ByRef uAtlas As textureAtlas Ptr, ByVal fileName As String = "unt
 			
 			LoadingIndicator("Saving...")
 			
-			uAtlas->saveAtlas(fileName)
+			Dim As Integer e = uAtlas->saveAtlas(fileName)
 			
-			LoadingIndicator("Saved. (probably)")
+			If e Then
+				LoadingIndicator("Couldn't save, an error occurred.")
+				errorDialouge(e, __errorTrace)
+			Else			
+				LoadingIndicator("Saved.")
+			Endif
+			
 			Sleep 1000
 		Endif
 		

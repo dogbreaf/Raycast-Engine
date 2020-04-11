@@ -61,10 +61,10 @@ Function userHotkey( ByVal key As Integer, ByVal modifier As Integer = -1, ByVal
 End Function
 
 ' The back bar for getting user input and sending messages to the user
-Sub blackBar()
+Sub blackBar(ByVal c As UInteger = 0)
 	Do:Sleep 1,1:Loop Until InKey() = ""
 	
-	Line (0,0)-(__XRES, 8), rgb(0,0,0), BF
+	Line (0,0)-(__XRES, 8), c, BF
 	Locate 1,1
 End Sub
 
@@ -81,5 +81,17 @@ Function getConfirm( ByVal message As String ) As Boolean
 	Loop Until inKey() <> ""
 	
 	Return false
+End Function
+
+Function errorDialouge(ByVal e As errorCode, ByVal trace As String) As Integer
+	logError(e, trace, false)
+	
+	blackBar(rgb(255,0,0))
+	Draw String (0,0), "An error has occurred: " & errorStringify(e) & " at " & trace & ", press any key to continue..."
+	
+	Do:Sleep 1,1:Loop Until InKey() = ""
+	Sleep
+
+	Return 0
 End Function
 
