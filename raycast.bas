@@ -10,14 +10,14 @@ ScreenRes 800,600,32
 Dim As raycaster	test = raycaster(780,580,4)
 
 If command(1) <> "" Then
-	test.map.load(command(1))
+	logError( test.map.load(command(1)), __errorTrace, true )
 	logError( test.atlas.loadAtlas(command(2)), __errorTrace, true )
 Else
-	test.map.load("data/test.dat")
+	logError( test.map.load("data/test.dat"), __errorTrace, true )
 	logError( test.atlas.loadAtlas("data/test.atlas.dat"), __errorTrace, true )
 Endif
 
-test.fogColor = rgb(255,0,180)
+test.fogColor = rgb(200,210,180)
 
 test.playerX = 6.5
 test.playerY = 3.5
