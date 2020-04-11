@@ -99,6 +99,28 @@ Function gameMap.load( ByVal fname As String ) As errorCode
 			Get #hndl,, this.segment( x, y )
 		Next
 	Next
+        
+        ' Load objects
+        Dim As ULongInt objectCount
+        
+        Get #hndl,, objectCount
+        
+        ReDim this.mObject(objectCount) As mapObject
+        
+        If UBound(this.mObject) <> objectCount Then
+                Return E_RESIZE_FAILED
+        Endif
+        
+        For i As Integer = 0 to objectCount
+                If err <> 0 Then
+                        Return E_FILEIO_FAILED
+                Endif
+                If eof(hndl) Then
+                        Return E_FILE_ENDED_UNEXPECTEDLY
+                Endif
+                
+                Get #hndl,, this.mObject(i)
+        Next
 	
 	Close #hndl
 	
@@ -131,6 +153,19 @@ Function gameMap.save( ByVal fname As String ) As errorCode
 			Put #hndl,, this.segment( x, y )
 		Next
 	Next
+        
+        ' Save objects
+        Dim As ULongInt objectCount = UBound(this.mObject)
+        
+        Put #hndl,, objectCount
+        
+        For i As Integer = 0 to objectCount
+                If err <> 0 Then
+                        Return E_FILEIO_FAILED
+                Endif
+                
+                Put #hndl,, this.mObject(i)
+        Next
 	
 	Close #hndl
 	

@@ -14,6 +14,10 @@ type mapEditor
 	
 	fileName		As String
 	atlasFile		As String
+        
+        selectedObject          As Integer
+        
+        mapScale                As Integer = 8
 	
 	' Show the editor
 	Declare Sub show()
@@ -59,17 +63,46 @@ Sub mapEditor.show()
 				uAtlas->previousID = -1
 				
 				logError(uAtlas->setTexture( uMap->segment(x,y).textureID ), __errorTrace, false)
-				scalePut(, 16+(x*8), 16+(y*8), 8, 8, uAtlas->texture )
+				scalePut(, 16+(x*mapScale), 16+(y*mapScale), mapScale, mapScale, uAtlas->texture )
 					
 				If uMap->segment(x,y).solid Then
-					Line ( 16 + ( x*8 ), 16 + ( y*8 ) )-Step(8,8), rgb(255,0,120), B
+					Line ( 16 + ( x*mapScale ), 16 + ( y*mapScale ) )-Step(mapScale,mapScale), rgb(255,0,120), B
 				Endif
 			Next
 		Next
+                
+                ' Draw object markers
+                For i As Integer = 0 to UBound(uMap->mObject)
+                        Dim As mapObject Ptr wObj = @uMap->mObject(i)
+                        
+                        Circle (16+wObj->posX*mapScale, 16+wObj->posY*mapScale), mapScale/2, rgb(0,255,120)
+                Next
 		
 		' Draw the selection box
-		Line ( 16 + ( editX*8 ), 16 + ( editY*8 ) )-Step(8,8), rgb(255,0,0), B
-		
+		Line ( 16 + ( editX*8 ), 16 + ( editY*8 ) )-Step(8,8), rgb(255,255,0), B
+                
+                ' Draw the list of objects
+                Line (16, __YRES-130)-(__XRES - uAtlas->atlas->width - 64, __YRES-130), rgb(255,255,255)
+                
+                Draw String ( 16, __YRES-126 ), "Objects (Ctrl+O to add)"
+                
+                Dim As Integer objectCount = UBound( uMap->mObject )
+                Dim As String objectList(objectCount)
+                
+                For i As Integer = 0 to objectCount
+                        objectList(i) = i & " " & uMap->mObject(i).posX & "," & _
+                                uMap->mObject(i).posY & " Texture: " & _
+                                uMap->mObject(i).textureID
+                Next
+                selectList( 16, __YRES-116, 256, 100, objectList(), selectedObject)
+                
+                If UBound(uMap->mObject) > -1 Then
+                        uAtlas->setTexture(uMap->mObject(selectedObject).textureID)
+                        scalePut(, 288, __YRES-116, 32, 32, uAtlas->texture )
+		Else
+                        Line ( 288, __YRES-116)-step(32, 32), rgb(40,40,40), BF
+                Endif
+                
 		ScreenUnlock
 
 		' Input polling
@@ -136,6 +169,22 @@ Sub mapEditor.show()
 			
 			Sleep 1000
 		Endif
+                
+                ' add an object
+                If userHotkey( fb.SC_O, fb.SC_CONTROL ) Then
+                        Dim As Integer tID = -1
+                        
+                        blackBar()
+                        Input "Object texture (ID) > ", tID
+                        
+                        If tID <> 0 Then
+                                uMap->addObject(editX + 0.5, editY + 0.5,,,tID)
+                                
+                                blackBar()
+                                Print "Added object..."
+                                Sleep 1000
+                        Endif
+                Endif
 		
 		'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 		' Set the selected texture ID
@@ -198,6 +247,20 @@ Sub mapEditor.show()
 			
 			Sleep 1,1
 		Endif
+                
+                ' Object controls
+                If userHotkey(fb.SC_UP,,false) Then
+                        selectedObject -= 1
+                Endif
+                If userHotkey(fb.SC_DOWN,,false) Then
+                        selectedObject += 1
+                Endif
+                
+                If selectedObject < 0 Then
+                        selectedObject = 0
+                Elseif selectedObject > UBound(uMap->mObject) Then
+                        selectedObject = UBound(uMap->mObject)
+                Endif
 		
 		' Don't lock up the system lmfao
 		Sleep 10,1
