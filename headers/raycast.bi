@@ -238,6 +238,10 @@ type raycaster
 	drawFloor	As Boolean = true
 	
 	fogColor	As ULong
+        
+        ' temporary fix for flickering floor
+        ' Has a big performance penalty
+        floorFix        As Boolean = true
 	
 	' Timing
 	frameTime	As Double
@@ -332,6 +336,11 @@ Function raycaster.draw() As errorCode
 				
 				Dim As Integer mapX = CInt(sampleX)
 				Dim As Integer mapY = CInt(sampleY)
+                                
+                                ' Fix the flickering floor textures
+                                If floorFix Then
+                                        this.atlas.previousID = -1
+                                Endif
 				
 				' Grab the current floor texture
 				If (mapX < this.map.mapW) and (mapY < this.map.mapH) and (mapX > 0) and (mapY > 0) Then
