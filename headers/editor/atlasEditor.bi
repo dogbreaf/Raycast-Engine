@@ -24,8 +24,13 @@ Sub editAtlas( ByRef uAtlas As textureAtlas Ptr, ByVal fileName As String = "unt
 		Draw String (32+uAtlas->atlas->width,88), "Meta Textures"
 		Draw String (48+uAtlas->atlas->width+256,88), "Selected"
 		
-		uAtlas->setTexture(0)
-		
+                ' If this isnt done, the preview texture won't animate
+                If UBound(uAtlas->mTexture) > -1 Then
+                        If uAtlas->mTexture(listSelection).texType = T_ANIMATED Then
+                                uAtlas->setTexture(0)
+                        Endif
+		Endif
+                
 		If (UBound(uAtlas->mTexture) >= 0) Then
 			uAtlas->setTexture(listSelection + 2048)
 			scalePut(,48+uAtlas->atlas->width+256,100,32,32,uAtlas->texture)
@@ -35,42 +40,24 @@ Sub editAtlas( ByRef uAtlas As textureAtlas Ptr, ByVal fileName As String = "unt
 		Endif
 		
 		' List the meta-textures
-		For i As Integer = 0 to 40
-			Dim As Integer xp = 32+uAtlas->atlas->width
-			Dim As Integer yp = 100 + (i * 10)
-			
-			If i <= Ubound(uAtlas->mTexture) Then				
-				Dim As String	label = (i+listScroll) & ": "
-				
-				If uAtlas->mTexture(i+listScroll).texType = T_LARGE Then
-					label = label & "LRG " & uAtlas->mTexture(i+listScroll).x & "," & _
-						uAtlas->mTexture(i+listScroll).y & " " & _
-						uAtlas->mTexture(i+listScroll).w & "x" & _
-						uAtlas->mTexture(i+listScroll).h
-				ElseIf uAtlas->mTexture(i+listScroll).texType = T_ANIMATED Then
-					label = label & "ANI " & uAtlas->mTexture(i+listScroll).frameStart & "->" & _
-						uAtlas->mTexture(i+listScroll).frameEnd
-				Else
-					label = "Unknown"
-				Endif
-				
-				If len(label) > 32 Then
-					label = left(label, 29) & "..."
-				Endif
-				
-				If (i+listScroll) = listSelection Then
-					Line (xp,yp)-STEP(256,10), rgb(255,255,255), BF
-					
-					Draw String (xp+1,yp+1), Left(label, 32), rgb(0,0,0)
-				Else
-					Line (xp,yp)-STEP(256,10), rgb(0,0,0), BF
-					
-					Draw String (xp+1,yp+1), Left(label, 32), rgb(255,255,255)
-				Endif
-			Else
-				Line (xp,yp)-STEP(256,10), rgb(0,0,0), BF
-			Endif
-		Next
+                Dim As String listItems(UBound(uAtlas->mTexture))
+                
+                For i As Integer = 0 to UBound(uAtlas->mTexture)
+                        listItems(i) = i & ": "
+                        
+                        If uAtlas->mTexture(i+listScroll).texType = T_LARGE Then
+                                listItems(i) = listItems(i) & "LRG " & uAtlas->mTexture(i).x & "," & _
+                                        uAtlas->mTexture(i).y & " " & _
+                                        uAtlas->mTexture(i).w & "x" & _
+                                        uAtlas->mTexture(i).h
+                        ElseIf uAtlas->mTexture(i+listScroll).texType = T_ANIMATED Then
+                                listItems(i) = listItems(i) & "ANI " & uAtlas->mTexture(i).frameStart & "->" & _
+                                        uAtlas->mTexture(i).frameEnd
+                        Else
+                                listItems(i) = "Unknown"
+                        Endif
+                Next
+                selectList( 32 + uAtlas->atlas->width, 100, 256, 400, listItems(), listSelection )                
 		ScreenUnlock
 		
 		' 
@@ -113,16 +100,6 @@ Sub editAtlas( ByRef uAtlas As textureAtlas Ptr, ByVal fileName As String = "unt
 			listSelection = 0
 		Elseif listSelection > UBound(uAtlas->mTexture) Then
 			listSelection = UBound(uAtlas->mTexture)
-		Endif
-		
-		' Make the list move if it is long
-		If (listSelection-listScroll) < 2 Then
-			listScroll -= 1
-		ElseIf (listSelection-listScroll) > 38 Then
-			listScroll += 1
-		Endif
-		If listScroll < 0 Then
-			listScroll = 0
 		Endif
 		
 		If userHotkey(fb.SC_A, fb.SC_CONTROL) Then

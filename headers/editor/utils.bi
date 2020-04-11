@@ -99,3 +99,43 @@ Function errorDialouge(ByVal e As errorCode, ByVal trace As String) As Integer
 	Return 0
 End Function
 
+' Show a list of items with the selected item highlighted
+Function selectList( _
+                ByVal x As Integer, _
+                ByVal y As Integer, _
+                ByVal w As Integer, _
+                ByVal h As Integer, _
+                list(Any) As String, _
+                ByVal selectID As Integer ) As errorCode
+        
+        Dim As Integer count = UBound(list)
+        Dim As Integer listLength = (h/10)
+        Dim As Integer listScroll = IIF( selectID > listLength, selectID - 2, 0 )
+        
+        Line (x-1,y-1)-Step(w+2,h+2),   rgb(255,255,255),       B
+        Line (x,y)-Step(w,h),           rgb(40,40,40),          BF
+        
+        If selectID > count Then
+                Return E_BAD_PARAMETERS
+        Endif
+        
+        For i As Integer = 0 to listLength
+                Dim As uInteger bg = rgb(0,0,0)
+                Dim As uInteger fg = rgb(255,255,255)
+                
+                If i + listScroll > count Then
+                        Exit For
+                Endif
+                
+                If i + listScroll = selectID Then
+                        bg = rgb(255,255,255)
+                        fg = rgb(0,0,0)
+                Endif
+                
+                Line (x, y + (i * 10 ))-step(w,10), bg, BF
+                Draw String ( x + 2, y + ( i * 10 ) + 2 ), list(i + listScroll), fg
+        Next
+        
+        Return E_NO_ERROR
+End Function
+
