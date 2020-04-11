@@ -72,13 +72,23 @@ Function getConfirm( ByVal message As String ) As Boolean
 	blackBar()
 	Print message & " (Y/N)"
 	
+        Do:Sleep 1,1:Loop Until InKey() = ""
+        
+        Dim As String k
+        
 	Do
 		Sleep 1,1
+                
+                k = InKey()
 		
-		If Multikey(fb.SC_Y) Then
-			Return true
-		Endif
-	Loop Until inKey() <> ""
+                If LCase(k) = "y" Then
+                        Return true
+                Endif
+	Loop Until k <> ""
+        
+        blackBar()
+        Print "Cancelled"
+        Sleep 500
 	
 	Return false
 End Function
