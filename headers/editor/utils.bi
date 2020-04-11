@@ -86,6 +86,10 @@ End Function
 Function errorDialouge(ByVal e As errorCode, ByVal trace As String) As Integer
 	logError(e, trace, false)
 	
+	If e = 0 Then
+		Return 0
+	Endif
+	
 	blackBar(rgb(255,0,0))
 	Draw String (0,0), "An error has occurred: " & errorStringify(e) & " at " & trace & ", press any key to continue..."
 	
