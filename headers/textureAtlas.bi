@@ -87,7 +87,7 @@ Function textureAtlas.saveAtlas( ByVal fname As String ) As errorCode
 		Return E_FILEIO_FAILED
 	Endif
 	
-	Open fname For Output As #hndl
+	Open fname For Binary As #hndl
 	
 	If err <> 0 Then
 		Return E_FILEIO_FAILED
@@ -119,7 +119,7 @@ Function textureAtlas.loadAtlas( ByVal fname As String ) As errorCode
 		Return E_FILEIO_FAILED
 	Endif
 	
-	Open fname For Input As #hndl
+	Open fname For Binary As #hndl
 	
 	If err <> 0 Then
 		Return E_FILEIO_FAILED
