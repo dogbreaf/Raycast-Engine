@@ -51,6 +51,23 @@ Sub mapEditor.show()
 		Draw String ( __XRES - uAtlas->atlas->width - 16, 2 ), "Texture Atlas (Ctrl+A to edit)"
 		
 		Line ( __XRES - uAtlas->atlas->width - 32, 16 )-STEP(0,__YRES-32)
+                
+                ' Map info
+                Line (__XRES - uAtlas->atlas->width - 16, __YRES-100)-(__XRES, __YRES), rgb(30,30,30), BF
+                
+                Draw String ( __XRES - uAtlas->atlas->width - 16, __YRES-100), _
+                        "MapSize:      " & uMap->mapW & "x" & uMap->mapH
+                        
+                Draw String ( __XRES - uAtlas->atlas->width - 16, __YRES-90), _
+                        "Player Start: " & uMap->PlayerX & "," & uMap->PlayerY & _
+                        " (" & (uMap->playerA*(180/_pi)) & chr(248) & ")"
+                        
+                Draw String ( __XRES - uAtlas->atlas->width - 16, __YRES-80), _
+                        "Fog Color:    "
+                Draw String ( __XRES - uAtlas->atlas->width - 16, __YRES-70), _
+                        "Fog Distance: " & uMap->fogDistance
+                        
+                Line ( __XRES - uAtlas->atlas->width - 16 + 112, __YRES-80)-step(32,8), uMap->fogColor, BF
 		
 		'
 		Draw String ( 16, 2 ), "Map"
@@ -77,6 +94,11 @@ Sub mapEditor.show()
                         
                         Circle (16+wObj->posX*mapScale, 16+wObj->posY*mapScale), mapScale/2, rgb(0,255,120)
                 Next
+                
+                ' Draw Player marker
+                Circle (16+uMap->playerX*mapScale, 16+uMap->playerY*mapScale), mapScale/3, rgb(120,255,80),,,, F
+                Line (16+uMap->playerX*mapScale, 16+uMap->playerY*mapScale)-step _
+                     (sin(uMap->playerA)*mapScale, cos(uMap->playerA)*mapScale), rgb(255,255,255)
 		
 		' Draw the selection box
 		Line ( 16 + ( editX*8 ), 16 + ( editY*8 ) )-Step(8,8), rgb(255,255,0), B
@@ -185,6 +207,43 @@ Sub mapEditor.show()
                                 Sleep 1000
                         Endif
                 Endif
+                
+                ' Set player position
+                If userHotkey( fb.SC_P, fb.SC_CONTROL ) Then
+                        uMap->PlayerX = editX + 0.5
+                        uMap->PlayerY = editY + 0.5
+                        
+                        blackBar()
+                        Print "Set player position."
+                        Sleep 500
+                Endif
+                
+                If userHotkey( fb.SC_P, fb.SC_LSHIFT ) Then
+                        Dim As Double angle
+                        
+                        blackBar()
+                        Input "Player angle> ", angle
+                        
+                        uMap->playerA = angle * (_pi/180)
+                Endif
+                
+                If userHotkey( fb.SC_F, fb.SC_CONTROL ) Then
+                        Dim As Integer r,g,b
+                        
+                        blackBar()
+                        Input "Fog color (r,g,b) > ", r,g,b
+                        
+                        uMap->fogColor = rgb(r,g,b)
+                Endif
+                
+                If userHotkey( fb.SC_F, fb.SC_LSHIFT ) Then
+                        Dim As Integer dist
+                        
+                        blackBar()
+                        Input "Fog Distance > ", dist
+                        
+                        uMap->fogDistance = dist
+                Endif
 		
 		'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 		' Set the selected texture ID
@@ -249,10 +308,10 @@ Sub mapEditor.show()
 		Endif
                 
                 ' Object controls
-                If userHotkey(fb.SC_UP,,false) Then
+                If userHotkey(fb.SC_UP,,true) Then
                         selectedObject -= 1
                 Endif
-                If userHotkey(fb.SC_DOWN,,false) Then
+                If userHotkey(fb.SC_DOWN,,true) Then
                         selectedObject += 1
                 Endif
                 

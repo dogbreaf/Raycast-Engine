@@ -17,28 +17,11 @@ Else
 	logError( test.atlas.loadAtlas("data/test.atlas.dat"), __errorTrace, true )
 Endif
 
-test.fogColor = rgb(200,210,180)
-
-test.playerX = 6.5
-test.playerY = 3.5
-test.playerA = 0
-
-' A burning trash can 
-logError( test.map.addObject( 1.5, 1.5,,, 2048 ), __errorTrace, true )
-
-' Cones
-logError( test.map.addObject( 58.5, 9,,, 59 ), __errorTrace, true )
-logError( test.map.addObject( 58.5, 10,,, 59 ), __errorTrace, true )
-logError( test.map.addObject( 58.5, 11,,, 59 ), __errorTrace, true )
-
-For i As Integer = 0 to 15
-	' Add 15 trees
-	' 21,2 47,7
-	Dim As Double x = Rnd()*(47-21) + 21
-	Dim As Double y = Rnd()*(7-2) + 2
-	
-	logError( test.map.addObject( x + 0.5, y + 0.5,,, 2055 ), __errorTrace, true )
-Next
+test.fogColor = test.map.fogColor'rgb(200,210,180)
+test.drawDistance = test.map.fogDistance
+test.playerX = test.map.playerX
+test.playerY = test.map.playerY
+test.playerA = test.map.playerA
 
 Do
 	ScreenLock

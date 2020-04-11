@@ -537,7 +537,7 @@ Function raycaster.draw() As errorCode
 			objectAngle -= playerA
 			
 			' Draw the object if it is visible
-			If ( distanceFromPlayer > 0.05 ) _
+			If ( distanceFromPlayer > 0.1 ) _
 			   and ( distanceFromPlayer < this.drawDistance ) _
 			   and abs(objectAngle) < (this.FOV/2) Then
 			

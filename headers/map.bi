@@ -5,6 +5,9 @@
 Type mapSegment
 	solid		As Byte
 	textureID	As LongInt
+        
+        ' To be used later
+        targetFogColor  As ULongInt
 End Type
 
 ' Represents an object in the map
@@ -16,15 +19,34 @@ Type mapObject
 	' The dimensions of the object
 	width		As Double
 	height		As Double
+        
+        ' Wether to billboard the image or not
+        billboard       As Byte = 1
+        
+        ' If the image does not billboard this is the angle it
+        ' will be fixed at
+        rotation        As Double
 	
 	' The ID of the texture to use
 	textureID	As LongInt
+        
+        ' Wether the object has collision
+        solid           As Byte
 End Type
 
 ' The map
 type gameMap
 	mapW		As LongInt
 	mapH		As LongInt
+        
+        ' Fog color
+        fogColor        As ULongInt
+        fogDistance     As LongInt
+        
+        ' Initial player location
+        PlayerX         As Double
+        PlayerY         As Double
+        PlayerA         As Double
 	
 	' The segments on the map
 	segment ( Any, Any )	As mapSegment
@@ -82,10 +104,24 @@ Function gameMap.load( ByVal fname As String ) As errorCode
 		Return E_FILEIO_FAILED
 	Endif
 	
+        ' Header data
 	Get #hndl,, mapW
 	Get #hndl,, mapH
+        
+        Get #hndl,, fogColor
+        Get #hndl,, fogDistance
+        
+        ' Initial player location
+        Get #hndl,, PlayerX
+        Get #hndl,, PlayerY
+        Get #hndl,, PlayerA
 	
+        '
 	ReDim this.segment( mapW, mapH ) As mapSegment
+        
+        If UBound(this.segment,1) <> mapW and UBound(this.segment,2) <> mapH Then
+                Return E_RESIZE_FAILED
+        Endif
 	
 	For y As Integer = 0 to mapH
 		For x As Integer = 0 to mapW
@@ -141,8 +177,17 @@ Function gameMap.save( ByVal fname As String ) As errorCode
 		Return E_FILEIO_FAILED
 	Endif
 	
+        ' Header data
 	Put #hndl,, mapW
 	Put #hndl,, mapH
+        
+        Put #hndl,, fogColor
+        Put #hndl,, fogDistance
+        
+        ' Initial player location
+        Put #hndl,, PlayerX
+        Put #hndl,, PlayerY
+        Put #hndl,, PlayerA
 	
 	For y As Integer = 0 to mapH
 		For x As Integer = 0 to mapW
