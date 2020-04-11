@@ -23,6 +23,11 @@ test.playerX = 6.5
 test.playerY = 3.5
 test.playerA = 0
 
+logError( test.map.addObject( 1.5, 1.5,,, 2048 ), __errorTrace, true )
+
+logError( test.map.addObject( 12.5, 12.5,,, 2048 ), __errorTrace, true )
+logError( test.map.addObject( 12.5, 13.5,,, 2048 ), __errorTrace, true )
+
 Do
 	ScreenLock
 		Line (0,0)-(800,600), rgb(40,40,40), BF
@@ -32,8 +37,8 @@ Do
 		draw String (11,11), "FPS : " & CInt( test.frameRate ), rgb(120,255,10)
 	ScreenUnLock
 	
-	test.draw()
-	test.update()
+	logError(test.draw(), __errorTrace, true)
+	logError(test.update(), __errorTrace, true)
 	
 	If Multikey(fb.SC_UP) Then
 		test.drawDistance += 0.5
@@ -64,6 +69,8 @@ Do
 		test.screenBuffer = ImageCreate(resX,resY)
 		
 		test.draw()
+		
+		Randomize Timer
 		
 		BSave "Screenshot" & Hex(Rnd()*(2^32)) & ".bmp", test.screenBuffer
 		

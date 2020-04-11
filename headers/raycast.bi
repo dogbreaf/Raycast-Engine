@@ -151,14 +151,6 @@ Function shadePixel( ByVal colour As UInteger, ByVal shade As uByte, ByVal fog A
         
         c1.value = colour
         c2.value = fog
-        
-        /'
-        ' Old way results in darker parts being made too dark
-        r = c1.r-(255-shade)
-        g = c1.g-(255-shade)
-        b = c1.b-(255-shade)
-        a = c1.a-(255-shade)
-        '/
 
 	r = c1.r*(shade/255)
 	g = c1.g*(shade/255)
@@ -183,6 +175,37 @@ Function shadePixel( ByVal colour As UInteger, ByVal shade As uByte, ByVal fog A
         a = IIF(a > 255, 0, a)
         
         Return rgba(r, g, b, a)
+End Function
+
+' Calculate the angle between two points
+Function directionTo( ByVal x1 As Double, ByVal y1 As Double, ByVal x2 As Double, ByVal y2 As Double ) As Double
+	Dim As Double a,b
+	
+	Dim As Double ret
+
+	b = abs(x1-x2)
+	a = abs(y1-y2)
+
+	If x2 < x1 and y2 < y1 then
+		ret = atn( b/a )
+		ret += _pi
+		
+	ElseIf x2 > x1 and y2 > y1 then
+		ret = atn( b/a )
+		
+	ElseIf x2 > x1 and y2 < y1 then
+		ret = atn( a/b )
+		ret -= _pi/2 + _pi	' Not sure if the +pi is supposed to be there but it fixes a bug
+		
+	ElseIf x2 < x1 and y2 > y1 then
+		ret = atn( a/b )
+		ret += _pi/2 + _pi	' Not sure if the +pi is supposed to be there but it fixes a bug
+		
+	Else
+		ret = 0
+	Endif
+
+	Return ret
 End Function
 
 ' Do the raycasting
@@ -221,6 +244,9 @@ type raycaster
 	' Image buffers
 	screenBuffer	As fb.image Ptr
 	
+	' The depth buffer
+	depthBuffer(Any, Any)	As Double
+	
 	' Constructor to initialise the screen buffer
 	Declare Constructor ( ByVal As Integer, ByVal As Integer, ByVal As Integer = 1 )
 	Declare Destructor ()
@@ -247,6 +273,9 @@ Constructor raycaster ( ByVal w As Integer, ByVal h As Integer, ByVal s As Integ
 	Endif
 	
 	this.screenBuffer = ImageCreate( w, h )
+	
+	' Initialise the depth buffer
+	ReDim this.depthBuffer(this.renderW, this.renderH) As Double
 End Constructor
 
 Destructor raycaster ()
@@ -406,9 +435,18 @@ Function raycaster.draw() As errorCode
                 Dim As Integer Floor = this.renderH-Ceiling
                 
                 For y As Integer = 0 to this.renderH
+                	' Check that the depth buffer is large enough before we start filling it
+                	If (UBound(this.depthBuffer, 1) < x) or (UBound(this.depthBuffer, 2) < y) Then
+                		Return E_UNKNOWN
+                	Endif
+                	
+                	' Draw the appropriate thing
 			If y < Ceiling Then
 				' This is the sky, leave it blank for now
 				outputPixel = this.fogColor
+				
+				' Update the depth buffer
+				depthBuffer(x,y) = this.drawDistance
 				
 			ElseIf y > Floor Then
 				' This is floor, shade it with a gradient for now
@@ -420,9 +458,19 @@ Function raycaster.draw() As errorCode
 					outputPixel = rgb( shade, shade, shade )
 				Endif
 				
+				' Update the depth buffer
+				depthBuffer(x,y) = this.drawDistance
+				
 			ElseIf distanceToWall >= drawDistance Then
 				outputPixel = this.fogColor
+				
+				' Update the depth buffer
+				depthBuffer(x,y) = this.drawDistance
+				
 			Else
+				' Update the depth buffer
+				depthBuffer(x,y) = distanceToWall
+				
 				' This is the wall, calculate the shading depending on distance to the wall
 				shade = 255-(255*(distanceToWall/drawDistance))
 				
@@ -435,7 +483,9 @@ Function raycaster.draw() As errorCode
 				
 				' Sample the texture
 				outputPixel = sampleTexture( sampleX, sampleY, this.atlas.texture, SI_NEAREST )
-				outputPixel = shadePixel( outputPixel, shade, this.fogColor )
+				
+				' Shade it if its not "transparent"
+				OutputPixel = shadePixel( outputPixel, shade, this.fogColor )
 			Endif
 			
 			' Draw to the buffer
@@ -444,6 +494,95 @@ Function raycaster.draw() As errorCode
 			Endif
                 Next
 	Next
+	
+	' Render any objects
+	If UBound(this.map.mObject) > -1 Then
+		For i As Integer = 0 to UBound(this.map.mObject)
+			' Create a handy pointer to the object
+			Dim As mapObject Ptr workingObject = @this.map.mObject(i)
+			
+			' Calculate the distance to the object
+			Dim As Double vecX = workingObject->posX - this.playerX
+			Dim As Double vecY = workingObject->posY - this.playerY
+			
+			Dim As Double distanceFromPlayer = sqr( (vecX^2) + (vecY^2) )
+			
+			' Calculate if the object is within the FOV
+			Dim As Double eyeX = sin(this.playerA)
+			Dim As Double eyeY = cos(this.playerA)
+			
+			Dim As Double objectAngle = directionTo( playerX, playerY, workingObject->posX, workingObject->posY )
+			
+			' Clamp the player angle to make the maths easier
+			If playerA > 2*_pi Then
+				playerA = 0
+			Endif
+			If playerA < 0 Then
+				playerA = 2*_pi
+			Endif
+			
+			' The angle we want is the difference between where the player is facing and the angle between the player and the object
+			' i.e. it will be 0 when the player is looking directly at the object and move to +/- 2pi as they turn to either side
+			objectAngle -= playerA
+			
+			' Draw the object if it is visible
+			If ( distanceFromPlayer > 0.05 ) _
+			   and ( distanceFromPlayer < this.drawDistance ) _
+			   and abs(objectAngle) < (this.FOV/2) Then
+			
+				' Calculate the position of the object in screen space
+				Dim As Double objectCeiling = ( renderH/2 ) - renderH / distanceFromPlayer
+				Dim As Double objectFloor = renderH - objectCeiling
+				
+				Dim As Double objectHeight = (objectFloor-objectCeiling)*workingObject->height
+				Dim As Double objectWidth = (objectFloor-objectCeiling)*workingObject->width
+				
+				' This might not be 100% perfect, dunno
+				Dim As Double objectCenter =  0.5 + ((this.FOV/2) + objectAngle/this.FOV)*this.renderW
+				
+				For y As Integer = 0 to objectHeight
+					For x As Integer = 0 to objectWidth
+						' Sample the texture
+						Dim As Double sampleX = x / objectWidth
+						Dim As Double sampleY = y / objectHeight
+						
+						Dim As Integer objectColumn = objectCenter + x - (objectWidth/2)
+						Dim As Integer pX = objectColumn
+						Dim As Integer pY = objectCeiling + y
+						
+						this.atlas.setTexture( workingObject->textureID )
+						
+						Dim As tPixel sample
+						sample.value = sampleTexture( sampleX, sampleY, this.atlas.texture, SI_NEAREST )
+						
+						' If it is not transparent and not off screen
+						If (sample.r <> 255) and (sample.b <> 255) and (sample.g <> 0) and _
+							(pX > 0) and (pY > 0) and (pX < renderW) and (pY < renderH) Then
+							
+							' Shade the object depending on distance
+							Dim As UInteger shade = 255 - (255 * ( distanceFromPlayer/this.drawDistance ))
+							
+							sample.value = shadePixel( sample.value, shade, this.fogColor )
+							
+							' Check array bounds
+							If (UBound(this.depthBuffer, 1) < pX) or (UBound(this.depthBuffer, 2) < pY) Then
+								Return E_UNKNOWN
+							Endif
+							
+							' Draw the object
+							If distanceFromPlayer < this.depthBuffer(pX, pY) Then
+								' The object is the closest thing so far
+								this.depthBuffer(pX, pY) = distanceFromPlayer
+							
+								Line this.screenBuffer, (pX*renderScale, pY*this.renderScale)-step _
+									(this.renderScale, this.renderScale), sample.value, BF
+							Endif
+						Endif
+					Next
+				Next
+			Endif
+		Next
+	Endif
 	
 	Return E_NO_ERROR
 End Function

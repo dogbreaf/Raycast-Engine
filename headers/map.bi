@@ -7,14 +7,34 @@ Type mapSegment
 	textureID	As LongInt
 End Type
 
+' Represents an object in the map
+Type mapObject
+	' The position of the object
+	posX		As Double
+	posY		As Double
+	
+	' The dimensions of the object
+	width		As Double
+	height		As Double
+	
+	' The ID of the texture to use
+	textureID	As LongInt
+End Type
+
 ' The map
 type gameMap
 	mapW		As LongInt
 	mapH		As LongInt
 	
+	' The segments on the map
 	segment ( Any, Any )	As mapSegment
 	
+	' The objects on the map
+	mObject ( Any ) 	As mapObject
+	
 	Declare Constructor ( ByVal As Integer, ByVal As Integer )
+	
+	Declare Function addObject( ByVal As Double, ByVal As Double, ByVal As Double = 1, ByVal As Double = 1, ByVal As Integer ) As errorCode
 	
 	Declare Function load ( ByVal As String ) As errorCode
 	Declare Function save ( ByVal As String ) As errorCode
@@ -27,6 +47,26 @@ Constructor gameMap ( ByVal w As Integer, ByVal h As Integer )
 	this.mapW = w
 	this.mapH = h
 End Constructor
+
+Function gameMap.addObject( ByVal x As Double, ByVal y As Double, ByVal w As Double = 1, ByVal h As Double = 1, ByVal tID As Integer ) As errorCode
+	Dim As Integer count = UBound(this.mObject)+1
+	
+	ReDim Preserve this.mObject(count) As mapObject
+	
+	If UBound(this.mObject) <> count Then
+		Return E_RESIZE_FAILED
+	Endif
+	
+	this.mObject(count).posX = x
+	this.mObject(count).posY = y
+	
+	this.mObject(count).width = w
+	this.mObject(count).height = h
+	
+	this.mObject(count).textureID = tID
+
+	Return E_NO_ERROR
+End Function
 
 Function gameMap.load( ByVal fname As String ) As errorCode
 	' Load the data from a file
