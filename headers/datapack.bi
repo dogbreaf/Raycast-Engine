@@ -73,10 +73,7 @@ Function datapack.seekToFile( ByVal fname As String ) As errorCode
                                 Seek #this.fileHandle, this.file(i-1).nextFile _
                                         + sizeOf(datapackFile)
                         Endif
-                        
-                        Print "FileID: " & i
-                        Print "Seek to " & seek(this.fileHandle)
-                        
+
                         ' Update the current file pointer
                         this.currentFile = @this.file(i)
                         
@@ -112,10 +109,7 @@ Function datapack.extractFile( ByVal fname As String, ByVal outFileName As Strin
         If err Then
                 Return E_FILEIO_FAILED
         Endif
-        
-        Print "To read: " & currentFile->fileSize & " bytes"
-        Print "@ " & seek(this.fileHandle)
-        
+
         ' Start extracting the data
         For i As UInteger = 0 to currentFile->fileSize/sizeOf(integer)
                 Dim As Integer buffer
