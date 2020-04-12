@@ -86,7 +86,7 @@ Function consolePrint( ByVal text As String ) As errorCode
 		Return E_FILEIO_FAILED
 	Endif
 	
-	Open Err For Output As #hndl
+	Open Cons For Output As #hndl
 	
 	If err <> 0 Then
 		Return E_FILEIO_FAILED

@@ -20,7 +20,7 @@ end union
 Enum sampleInterpolation
 	SI_NEAREST
 	SI_WEIGHTED
-	SI_COSINE
+	SI_SINE
 End Enum
 
 ' Much faster than point()
@@ -91,15 +91,7 @@ Function sampleTexture( ByVal sx As Double, _
 		
 		x = CInt(x)
 		y = CInt(y)
-		
-		' Don't sample past the end of the texture
-		If x >= b->width Then
-			x = b->width-1
-		Endif
-		If y >= b->height Then
-			y = b->height-1
-		Endif
-		
+
 		Dim As uInteger s1 = fastPoint(x,  y,  b)
 		Dim As uInteger s2 = fastPoint(x,  y+1,b)
 		Dim As uInteger s3 = fastPoint(x+1,y,  b)
@@ -110,14 +102,14 @@ Function sampleTexture( ByVal sx As Double, _
 		
 		ret = weightColors(s1, s2, weightY)
 		
-	Case SI_COSINE
+	Case SI_SINE
 		' Use a cosine function to interpolate between values
 		Dim As Double x = (b->width-1)*frac(sx)
 		Dim As Double y = (b->height-1)*frac(sy)
 		
 		' I think this should work (should start at 1.0 when the input weight is 0, and go to 0 when it is 1.0)
-		Dim As Double weightX = cos( frac(x) * _pi )
-		Dim As Double weightY = cos( frac(y) * _pi )
+		Dim As Double weightX = sin( frac(x) * _pi )
+		Dim As Double weightY = sin( frac(y) * _pi )
 		
 		x = CInt(x)
 		y = CInt(y)
@@ -145,7 +137,7 @@ Function sampleTexture( ByVal sx As Double, _
         Return ret
 End Function
 
-' Shade a texture sample
+' Shade a texture sample by a certain amount and colour it with the background color
 Function shadePixel( ByVal colour As UInteger, ByVal shade As uByte, ByVal fog As UInteger = rgb(0,0,0)) As UInteger
         Dim As tPixel c1
         Dim As tPixel c2
@@ -239,6 +231,8 @@ type raycaster
 	
 	fogColor	As ULong
         
+        interpolation   As sampleInterpolation = SI_NEAREST
+        
         ' temporary fix for flickering floor
         ' Has a big performance penalty
         floorFix        As Boolean = true
@@ -256,9 +250,13 @@ type raycaster
 	' Constructor to initialise the screen buffer
 	Declare Constructor ( ByVal As Integer, ByVal As Integer, ByVal As Integer = 1 )
 	Declare Destructor ()
+        
+        Declare Function getMapSettings() As errorCode
 	
 	Declare Function draw() As errorCode
 	Declare Function update() As errorCode
+        
+        Declare Function screenshot( ByVal As Integer, ByVal As Integer, ByVal As String = "" ) As errorCode
 end type
 
 Constructor raycaster ( ByVal w As Integer, ByVal h As Integer, ByVal s As Integer = 1 )
@@ -290,6 +288,21 @@ Destructor raycaster ()
 		this.screenBuffer = 0
 	Endif
 End Destructor
+
+Function raycaster.getMapSettings() As errorCode
+        this.fogColor = this.map.fogColor
+        this.drawDistance = this.map.fogDistance
+        
+        If this.drawDistance < 4 Then
+                this.drawDistance = 4
+        Endif
+        
+        this.playerX = this.map.playerX
+        this.playerY = this.map.playerY
+        this.playerA = this.map.playerA
+        
+        Return E_NO_ERROR
+End Function
 
 Function raycaster.draw() As errorCode
 	Dim As errorCode retCode
@@ -356,7 +369,7 @@ Function raycaster.draw() As errorCode
 				logError(retCode, __errorTrace, false)
 				
 				' Sample the texture
-				Dim As UInteger sample = sampleTexture( abs(sampleX+0.5), abs(sampleY+0.5), this.atlas.texture, SI_NEAREST )
+				Dim As UInteger sample = sampleTexture( abs(sampleX+0.5), abs(sampleY+0.5), this.atlas.texture, interpolation )
 				
 				' Calculate the distance from the player
 				Dim As Double distance = sqr( (( playerX-sampleX ) ^ 2) + (( playerY-sampleY ) ^ 2) )
@@ -493,7 +506,7 @@ Function raycaster.draw() As errorCode
 				logError(retCode, __errorTrace, false)
 				
 				' Sample the texture
-				outputPixel = sampleTexture( sampleX, sampleY, this.atlas.texture, SI_NEAREST )
+				outputPixel = sampleTexture( sampleX, sampleY, this.atlas.texture, interpolation )
 				
 				' Shade it if its not "transparent"
 				OutputPixel = shadePixel( outputPixel, shade, this.fogColor )
@@ -564,7 +577,7 @@ Function raycaster.draw() As errorCode
 						this.atlas.setTexture( workingObject->textureID )
 						
 						Dim As tPixel sample
-						sample.value = sampleTexture( sampleX, sampleY, this.atlas.texture, SI_NEAREST )
+						sample.value = sampleTexture( sampleX, sampleY, this.atlas.texture, interpolation )
 						
 						' If it is not transparent and not off screen
 						If (sample.r <> 255) and (sample.b <> 255) and (sample.g <> 0) and _
@@ -655,6 +668,71 @@ Function raycaster.update() As errorCode
         frameTime = timer
         
         '
+        Return E_NO_ERROR
+End Function
+
+Function raycaster.screenshot( ByVal resX As Integer, ByVal resY As Integer, ByVal fname As String = "" ) As errorCode
+        ' Take a super-sampled screenshot
+        consolePrint("Taking screenshot...")
+		
+        Dim As Integer cx,cy,cs
+        Dim As String fileName
+        
+        If fname <> "" Then
+                fileName = fname
+        Else
+                Randomize Timer
+                fileName = Command(0) & "_SCREENSHOT_" & Hex(Rnd()*(2^32)) & Hex(Rnd()*(2^32)) & ".bmp"
+        Endif
+        
+        cx = this.renderW
+        cy = this.renderH
+        cs = this.renderScale
+        
+        this.renderW = resX
+        this.renderH = resY
+        this.renderScale = 1
+        
+        If this.screenBuffer <> 0 Then
+                ImageDestroy(this.screenBuffer):this.screenBuffer = 0
+        Endif
+        this.screenBuffer = ImageCreate(resX,resY)
+        
+        If this.screenBuffer = 0 Then
+                Return E_NO_BUFFER
+        Endif
+        
+        ReDim this.depthBuffer(resX, resY) As Double
+        
+        If UBound( this.depthBuffer, 1 ) <> resX and UBound( this.depthBuffer, 2 ) <> resY Then
+                Return E_RESIZE_FAILED
+        Endif
+        
+        this.draw()
+
+        BSave fileName, this.screenBuffer
+        
+        this.renderW = cx
+        this.renderH = cy
+        this.renderScale = cs
+        
+        If this.screenBuffer <> 0 Then
+                ImageDestroy(this.screenBuffer):this.screenBuffer = 0
+        Endif
+        this.screenBuffer = ImageCreate(cx*cs,cy*cs)
+        
+        If this.screenBuffer = 0 Then
+                Return E_NO_BUFFER
+        Endif
+        
+        ReDim this.depthBuffer(cx,cy)
+        
+        If UBound( this.depthBuffer, 1 ) <> cx and UBound( this.depthBuffer, 2 ) <> cy Then
+                Return E_RESIZE_FAILED
+        Endif
+        
+        consolePrint "Done."
+        
         Return E_NO_ERROR
 End Function
 

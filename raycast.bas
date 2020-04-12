@@ -5,9 +5,12 @@
 #include "headers/map.bi"
 #include "headers/raycast.bi"
 
-ScreenRes 800,600,32
+#define __XRES 800
+#define __YRES 600
 
-Dim As raycaster	test = raycaster(780,580,4)
+ScreenRes __XRES,__YRES,32
+
+Dim As raycaster	test = raycaster(__XRES-20,__YRES-20,IIF(__XRES > 400, 4, 2))
 
 If command(1) <> "" Then
 	logError( test.map.load(command(1)), __errorTrace, true )
@@ -17,15 +20,11 @@ Else
 	logError( test.atlas.loadAtlas("data/test.atlas.dat"), __errorTrace, true )
 Endif
 
-test.fogColor = test.map.fogColor'rgb(200,210,180)
-test.drawDistance = test.map.fogDistance
-test.playerX = test.map.playerX
-test.playerY = test.map.playerY
-test.playerA = test.map.playerA
+test.getMapSettings()
 
 Do
 	ScreenLock
-		Line (0,0)-(800,600), rgb(40,40,40), BF
+		Line (0,0)-(__XRES,__YRES), rgb(40,40,40), BF
 		
 		put (10,10), test.screenBuffer, PSET
 		
@@ -34,56 +33,13 @@ Do
 	
 	logError(test.draw(), __errorTrace, true)
 	logError(test.update(), __errorTrace, true)
-	
-	If Multikey(fb.SC_UP) Then
-		test.drawDistance += 0.5
-		sleep 100,1
-	Endif
-	If Multikey(fb.SC_DOWN) Then
-		test.drawDistance -= 0.5
-		sleep 100,1
-	Endif
+
 	
 	If Multikey(fb.SC_F12) Then
-		Print "Taking screenshot..."
-		
-		Dim As Integer cx,cy,cs
-		Dim As Integer resX = 3840, resy = 2160
-		
-		cx = test.renderW
-		cy = test.renderH
-		cs = test.renderScale
-		
-		test.renderW = resX
-		test.renderH = resY
-		test.renderScale = 1
-		
-		If test.screenBuffer <> 0 Then
-			ImageDestroy(test.screenBuffer):test.screenBuffer = 0
-		Endif
-		test.screenBuffer = ImageCreate(resX,resY)
-		
-		ReDim test.depthBuffer(resX, resY) As Double
-		
-		test.draw()
-		
-		Randomize Timer
-		
-		BSave "Screenshot" & Hex(Rnd()*(2^32)) & ".bmp", test.screenBuffer
-		
-		test.renderW = cx
-		test.renderH = cy
-		test.renderScale = cs
-		
-		If test.screenBuffer <> 0 Then
-			ImageDestroy(test.screenBuffer):test.screenBuffer = 0
-		Endif
-		test.screenBuffer = ImageCreate(cx*cs,cy*cs)
-		
-		ReDim test.depthBuffer(cx,cy)
-		
-		Print "Done."
-		Sleep 100,1
+                Line (0,__YRES/2)-step(__XRES, 10), rgb(0,0,0), BF
+                Draw String (__XRES/2 - 80, __YRES/2 + 2), "Taking screenshot..."
+                
+		logError(test.screenshot(3840,2560), __errorTrace, true)
 	Endif
 	
 	Sleep 1,1
