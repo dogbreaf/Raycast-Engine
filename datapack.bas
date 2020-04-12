@@ -1,5 +1,6 @@
 #include "headers/errors.bi"
 #include "headers/imagedata.bi"
+#include "headers/textureatlas.bi"
 
 #include "headers/editor/arguments.bi"
 
@@ -22,9 +23,9 @@ If getOption("-?") or getOption("-h") or command(1) = "" Then
         Print "    Show information about a package."
         Print
         Print "  -z <image.bmp> -o <image.img> [--rle]"
-        Print "    Convert a bitmap to be stored. If --rle is used, image will be compressed using Run Length Encoding."
-        Print "  -x <image.img> -o <image.bmp>"
-        Print "    Convert an image in storage format to a bitmap."
+        Print "    Convert a bitmap to be stored or back again. If --rle is used, image will be compressed using Run Length Encoding."
+        Print "  -x <atlas.dat> -o <image.img|image.bmp>"
+        Print "    Extract the texture data from a texture atlas"
         Print
         Print "  Images must be converted to be read directly from a package by the engine."
         Print
@@ -152,10 +153,182 @@ ElseIf getOption("-i") Then
         
 ElseIf getOption("-z") Then
         ' Convert an image
+        Dim As Integer  hndl
         
+        Dim As String   inImage = getArgument("-z")
+        Dim As String   outImage = getArgument("-o")
+        
+        Dim As compressionScheme compression = CS_NONE
+        
+        If inImage = "" Then
+                Print "No input specified!"
+                Print
+                
+                End
+        Endif
+        
+        If outImage = "" Then
+                Print "No output specified!"
+                Print
+                
+                End
+        Endif
+        
+        Print "Image conversion"
+        
+        If getOption("--rle") Then
+                compression = CS_RLE
+                
+                Print "using run-length encoding"
+        Endif
+        
+        Print
+        
+        If Right(inImage,3) = "bmp" and Right(outImage,3) = "img" Then
+                Print "Converting bitmap to data image"
+                
+                ' Convert BMP to IMG
+                ScreenRes 120,32,32
+                Print "Working..."
+                
+                ' Create a buffer and read the bitmap image
+                Dim As Any Ptr  inputImage
+                Dim As Integer  hndl = FreeFile
+                Dim As Long  w
+                Dim As Long  h
+		
+		Open inImage For Binary As #hndl 
+		
+		Get #hndl, 19, w
+		Get #hndl, 23, h
+		
+		Close #hndl
+		
+		If (w < 1) or (h < 1) Then
+                        consolePrint "Could not get image size, is it a bitmap image?"
+                        consolePrint ""
+                        
+			End E_WRONG_FILETYPE
+		Endif
+                
+                inputImage = ImageCreate(w,h,rgb(0,0,0))
+                BLoad inImage, inputImage
+                
+                consolePrint "Input image is " & w & "x" & h
+                
+                ' Write out the converted image data
+                Open outImage For Binary As #hndl
+                
+                logError(storeImageData(hndl, inputImage, compression), __errorTrace, true)
+                
+                Close #hndl
+                
+                ' Reset close the graphics window again
+                Screen 0,,, &h80000000
+                
+                Print "Saved successfully."
+                Print
+                
+                
+        ElseIf Right(inImage,3) = "img" and Right(outImage,3) = "bmp" Then
+                Print "Converting data image to bitmap"
+                
+                ' Convert IMG to BMP
+                ScreenRes 120,32,32
+                Print "Working..."
+                
+                Dim As fb.Image Ptr  inputImage
+                
+                ' Open the file
+                Dim As Integer  hndl = FreeFile
+                
+                Open inImage For Binary As hndl
+                
+                logError(readImageData(hndl, inputImage), __errorTrace, true)
+                
+                Close #hndl
+                
+                consolePrint "Input image is " & inputImage->width & "x" & inputImage->height
+                
+                ' Save the bitmap
+                BSave outImage, inputImage
+                
+                ' Reset close the graphics window again
+                Screen 0,,, &h80000000
+                
+                Print "Saved successfully."
+                Print
+                
+        ElseIf Right(inImage,3) = Right(outImage,3) Then
+                Print "Nothing to do, filetypes match."
+                Print
+                
+                End 0
+        Else
+                Print "One or more unsupported filetypes."
+                Print "Please pass one bitmap and one img file as arguments."
+                Print
+                
+                End 0
+        Endif
 ElseIf getOption("-x") Then
-        ' Convert a bitmap
-
+        ' Extract image from texture atlas
+        Dim As String atlasFile = getArgument("-x")
+        Dim As String outFile = getArgument("-o")
+        
+        If atlasFile = "" Then
+                Print "No texture atlas specified!"
+                Print
+                
+                End E_NO_FILE_SPECIFIED
+        Endif
+        
+        If outFile = "" Then
+                Print "No output specified!"
+                Print
+                
+                End E_NO_FILE_SPECIFIED
+        Endif
+        
+        ' Create an image buffer
+        ScreenRes 120,32,32
+        Print "Working..."
+        
+        ' Open the atlas
+        Dim As textureAtlas     atlas
+        
+        logError(atlas.loadAtlas(atlasFile), __errorTrace, true)
+        
+        consolePrint "Image is " & atlas.atlas->width & "x" & atlas.atlas->height
+        
+        ' Save the image
+        If right(outFile, 3) = "bmp" Then
+                ' User wants bitmap
+                BSave outFile, atlas.atlas
+                
+        ElseIf right(outFile, 3) = "img" Then
+                ' User wants the data image format
+                Dim As Integer hndl = FreeFile
+                Open outFile For Binary As #hndl
+                
+                storeImageData(hndl, atlas.atlas, CS_RLE)
+                
+                Close #hndl
+                
+        Else
+                ' Sorry we don't do anything else
+                ConsolePrint "Sorry, only bitmap and data image are supported output formats."
+                ConsolePrint ""
+                
+                End E_BAD_PARAMETERS
+        Endif
+        
+        ' Done
+        Screen 0,,, &h80000000
+        
+        Print "Saved successfully."
+        Print
+        
 Else
         Print "Unknown Option"
         Print

@@ -222,7 +222,7 @@ Function textureAtlas.loadTextures( ByVal fname As String, ByVal wIn As Integer 
 	If (w = -1) or (h = -1) Then
 		Dim As Integer hndl = FreeFile
 		
-		Open fname For Input As #hndl 
+		Open fname For Binary As #hndl 
 		
 		Get #hndl, 19, w
 		Get #hndl, 23, h
