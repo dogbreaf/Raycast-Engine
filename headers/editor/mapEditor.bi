@@ -37,12 +37,14 @@ Sub mapEditor.show()
 		uAtlas->setTexture(textureID)
 		scalePut (, __XRES - uAtlas->atlas->width - 16, 16, 32, 32, uAtlas->texture )
 		
-		Line (__XRES - uAtlas->atlas->width - 16 + uAtlas->textureX, 64 + uAtlas->textureY)-Step(32,32), rgb(0,255,0), B
+		Line (__XRES - uAtlas->atlas->width - 16 + uAtlas->textureX, 64 + uAtlas->textureY)-Step _
+                        (uAtlas->textureSize,uAtlas->textureSize), rgb(0,255,0), B
 		
 		uAtlas->setTexture( uMap->segment(editX, editY).textureID )
 		scalePut (, __XRES - uAtlas->atlas->width + 32, 16, 32, 32, uAtlas->texture )
 		
-		Line (__XRES - uAtlas->atlas->width - 16 + uAtlas->textureX, 64 + uAtlas->textureY)-Step(32,32), rgb(0,255,255), B
+		Line (__XRES - uAtlas->atlas->width - 16 + uAtlas->textureX, 64 + uAtlas->textureY)-Step _
+                        (uAtlas->textureSize,uAtlas->textureSize), rgb(0,255,255), B
 
 		' Draw some info 
 		Draw String ( __XRES - uAtlas->atlas->width - 16 + 100, 14), "TextureID:   " & textureID
@@ -88,6 +90,9 @@ Sub mapEditor.show()
 			Next
 		Next
                 
+                ' Draw the selection box
+		Line ( 16 + ( editX*mapScale ), 16 + ( editY*mapScale ) )-Step(mapScale,mapScale), rgb(255,255,0), B
+                
                 ' Draw object markers
                 For i As Integer = 0 to UBound(uMap->mObject)
                         Dim As mapObject Ptr wObj = @uMap->mObject(i)
@@ -99,9 +104,6 @@ Sub mapEditor.show()
                 Circle (16+uMap->playerX*mapScale, 16+uMap->playerY*mapScale), mapScale/3, rgb(120,255,80),,,, F
                 Line (16+uMap->playerX*mapScale, 16+uMap->playerY*mapScale)-step _
                      (sin(uMap->playerA)*mapScale, cos(uMap->playerA)*mapScale), rgb(255,255,255)
-		
-		' Draw the selection box
-		Line ( 16 + ( editX*8 ), 16 + ( editY*8 ) )-Step(8,8), rgb(255,255,0), B
                 
                 ' Draw the list of objects
                 Line (16, __YRES-130)-(__XRES - uAtlas->atlas->width - 64, __YRES-130), rgb(255,255,255)
@@ -244,8 +246,38 @@ Sub mapEditor.show()
                         
                         uMap->fogDistance = dist
                 Endif
+                
+                ' 
+                If userHotkey( fb.SC_EQUALS, fb.SC_CONTROL, true ) Then
+                        uAtlas->textureSize += 8
+                        If uAtlas->textureSize > uAtlas->atlas->width Then
+                                uAtlas->textureSize = uAtlas->atlas->width
+                        Endif
+                Endif
+                
+                If userHotkey( fb.SC_MINUS, fb.SC_CONTROL, true ) Then
+                        uAtlas->textureSize -= 8
+                        If uAtlas->textureSize < 8 Then
+                                uAtlas->textureSize = 8
+                        Endif
+                Endif
 		
 		'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+                ' Map controls
+                If userHotkey( fb.SC_EQUALS,, true ) Then
+                        mapScale += 1
+                        If mapScale > 64 Then
+                                mapScale = 64
+                        Endif
+                Endif
+                
+                If userHotkey( fb.SC_MINUS,, true ) Then
+                        mapScale -= 1
+                        If mapScale < 1 Then
+                                mapScale = 1
+                        Endif
+                Endif
+                
 		' Set the selected texture ID
 		If userHotkey( fb.SC_PAGEUP, fb.SC_CONTROL ) Then
 			textureID += 10
