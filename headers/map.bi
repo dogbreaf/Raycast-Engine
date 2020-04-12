@@ -58,8 +58,11 @@ type gameMap
 	
 	Declare Function addObject( ByVal As Double, ByVal As Double, ByVal As Double = 1, ByVal As Double = 1, ByVal As Integer ) As errorCode
 	
-	Declare Function load ( ByVal As String ) As errorCode
-	Declare Function save ( ByVal As String ) As errorCode
+	Declare Function loadMap ( ByVal As String ) As errorCode
+	Declare Function saveMap ( ByVal As String ) As errorCode
+        
+        Declare Function load ( ByVal As Integer ) As errorCode
+        Declare Function save ( ByVal As Integer ) As errorCode
 end type
 
 Constructor gameMap ( ByVal w As Integer, ByVal h As Integer )
@@ -90,8 +93,8 @@ Function gameMap.addObject( ByVal x As Double, ByVal y As Double, ByVal w As Dou
 	Return E_NO_ERROR
 End Function
 
-Function gameMap.load( ByVal fname As String ) As errorCode
-	' Load the data from a file
+Function gameMap.loadMap( ByVal fname As String ) As errorCode
+        ' Load the data from a file
 	Dim As Integer hndl = FreeFile
 	
 	If hndl = 0 Then
@@ -103,7 +106,19 @@ Function gameMap.load( ByVal fname As String ) As errorCode
 	If err <> 0 Then
 		Return E_FILEIO_FAILED
 	Endif
-	
+        
+        Dim As errorCode ret = this.load(hndl)
+        
+        Close #hndl
+        
+        Return ret
+End Function
+
+Function gameMap.load( ByVal hndl As Integer ) As errorCode
+	If hndl = 0 Then
+		Return E_FILEIO_FAILED
+	Endif
+        
         ' Header data
 	Get #hndl,, mapW
 	Get #hndl,, mapH
@@ -116,7 +131,7 @@ Function gameMap.load( ByVal fname As String ) As errorCode
         Get #hndl,, PlayerY
         Get #hndl,, PlayerA
 	
-        '
+        ' Resize the map array
 	ReDim this.segment( mapW, mapH ) As mapSegment
         
         If UBound(this.segment,1) <> mapW and UBound(this.segment,2) <> mapH Then
@@ -158,13 +173,11 @@ Function gameMap.load( ByVal fname As String ) As errorCode
                 Get #hndl,, this.mObject(i)
         Next
 	
-	Close #hndl
-	
 	Return E_NO_ERROR
 End Function
 
-Function gameMap.save( ByVal fname As String ) As errorCode
-	' Save the data to a file
+Function gameMap.saveMap( ByVal fname As String ) As errorCode
+        ' Save the data to a file
 	Dim As Integer hndl = FreeFile
 	
 	If hndl = 0 Then
@@ -176,7 +189,19 @@ Function gameMap.save( ByVal fname As String ) As errorCode
 	If err <> 0 Then
 		Return E_FILEIO_FAILED
 	Endif
-	
+        
+        Dim As errorCode ret = this.load(hndl)
+        
+        Close #hndl
+        
+        Return ret
+End Function
+
+Function gameMap.save( ByVal hndl As Integer ) As errorCode
+	If hndl = 0 Then
+		Return E_FILEIO_FAILED
+	Endif
+        
         ' Header data
 	Put #hndl,, mapW
 	Put #hndl,, mapH
@@ -211,8 +236,6 @@ Function gameMap.save( ByVal fname As String ) As errorCode
                 
                 Put #hndl,, this.mObject(i)
         Next
-	
-	Close #hndl
 	
 	Return E_NO_ERROR
 End Function

@@ -13,10 +13,10 @@ ScreenRes __XRES,__YRES,32
 Dim As raycaster	test = raycaster(__XRES-20,__YRES-20,IIF(__XRES > 400, 4, 2))
 
 If command(1) <> "" Then
-	logError( test.map.load(command(1)), __errorTrace, true )
+	logError( test.map.loadMap(command(1)), __errorTrace, true )
 	logError( test.atlas.loadAtlas(command(2)), __errorTrace, true )
 Else
-	logError( test.map.load("data/test.dat"), __errorTrace, true )
+	logError( test.map.loadMap("data/test.dat"), __errorTrace, true )
 	logError( test.atlas.loadAtlas("data/test.atlas.dat"), __errorTrace, true )
 Endif
 
