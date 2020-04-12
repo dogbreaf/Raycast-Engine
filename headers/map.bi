@@ -190,7 +190,7 @@ Function gameMap.saveMap( ByVal fname As String ) As errorCode
 		Return E_FILEIO_FAILED
 	Endif
         
-        Dim As errorCode ret = this.load(hndl)
+        Dim As errorCode ret = this.save(hndl)
         
         Close #hndl
         

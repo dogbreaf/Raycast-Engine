@@ -183,7 +183,8 @@ Function directionTo( ByVal x1 As Double, ByVal y1 As Double, ByVal x2 As Double
 	b = abs(x1-x2)
 	a = abs(y1-y2)
 
-	If x2 < x1 and y2 < y1 then
+        ' For some reason this absolute bodge works 
+	If x2 <= x1 and y2 <= y1 then
 		ret = atn( b/a )
 		ret += _pi
 		
@@ -191,15 +192,20 @@ Function directionTo( ByVal x1 As Double, ByVal y1 As Double, ByVal x2 As Double
 		ret = atn( b/a )
 		
 	ElseIf x2 > x1 and y2 < y1 then
+                ' !!!
 		ret = atn( a/b )
-		ret -= _pi/2 + _pi	' Not sure if the +pi is supposed to be there but it fixes a bug
+		ret += _pi/2
 		
 	ElseIf x2 < x1 and y2 > y1 then
 		ret = atn( a/b )
 		ret += _pi/2 + _pi	' Not sure if the +pi is supposed to be there but it fixes a bug
-		
-	Else
-		ret = 0
+                
+        ElseIf x1 = x2 Then
+                ret = 0
+                
+        Else
+                ret = _pi/2
+                
 	Endif
 
 	Return ret
@@ -516,6 +522,11 @@ Function raycaster.draw() As errorCode
                                 ' The floor can't be further away than the wall, thats impossible
                                 If depthBuffer(x,y-1) < depthBuffer(x,y) Then
                                         depthBuffer(x,y) = depthBuffer(x,y-1)
+                                        
+                                ElseIf depthBuffer(x,y) < nearPlane Then
+                                        ' The floor can't be "touching" the screen eitehr
+                                        depthBuffer(x,y) = nearPlane
+                                        
                                 Endif
 				
 			ElseIf distanceToWall >= drawDistance Then
@@ -534,6 +545,10 @@ Function raycaster.draw() As errorCode
 				' Set the texture atlas
 				retCode = this.atlas.setTexture( mapSegment->textureID )
 				logError(retCode, __errorTrace, false)
+                                
+                                If retCode Then
+                                        consolePrint( mapSegment->textureID & " is not a valid textureID")
+                                Endif
 				
 				' Sample the texture
 				outputPixel = sampleTexture( sampleX, sampleY, this.atlas.texture, interpolation )

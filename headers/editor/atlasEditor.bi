@@ -1,4 +1,4 @@
-Sub editAtlas( ByRef uAtlas As textureAtlas Ptr, ByVal fileName As String = "untitled.atlas.dat" )
+Sub editAtlas( ByRef uAtlas As textureAtlas Ptr, ByRef fileName As String )
 	Dim As Integer	listScroll
 	Dim As Integer	listSelection
 	

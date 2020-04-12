@@ -14,6 +14,8 @@
 #include "headers/editor/arguments.bi"
 #include "headers/editor/utils.bi"
 
+#include "headers/editor/previewWindow.bi"
+
 #include "headers/editor/atlasEditor.bi"
 #include "headers/editor/mapEditor.bi"
 
@@ -39,7 +41,7 @@ Dim As mapEditor	thisMapEditor
 mapFile = getArgument("-m")
 
 If mapFile <> "" Then
-	errorDialouge(uMap.load( mapFile ), __errorTrace)
+	errorDialouge(uMap.loadMap( mapFile ), __errorTrace)
 Else
 	uMap = gameMap(32,32)
 	mapFile = "untitled.dat"

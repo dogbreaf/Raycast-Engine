@@ -12,8 +12,8 @@ type mapEditor
 	editX			As Integer
 	editY			As Integer
 	
-	fileName		As String
-	atlasFile		As String
+	fileName		As String = "untitled.dat"
+	atlasFile		As String = "untitled_atlas.dat"
         
         atlasScroll             As Integer
         
@@ -32,13 +32,13 @@ Sub mapEditor.show()
 		ScreenLock		
 		' Clear the screen
 		Line (0,0)-(__XRES,__YRES), rgb(30,30,30), BF
-	
+
 		' Draw the texture atlas and texture previews
 		Put (__XRES - uAtlas->atlas->width - 16, 64 + atlasScroll), uAtlas->atlas, PSET
                 
                 '
                 Line (__XRES - uAtlas->atlas->width - 16, 0)-(__XRES, 30), rgb(30,30,30), BF
-		
+                
 		uAtlas->setTexture(textureID)
 		scalePut (, __XRES - uAtlas->atlas->width - 16, 16, 32, 32, uAtlas->texture )
 		
@@ -132,6 +132,7 @@ Sub mapEditor.show()
                         Line ( 288, __YRES-116)-step(32, 32), rgb(40,40,40), BF
                 Endif
                 
+                ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 		ScreenUnlock
 
 		' Input polling
@@ -140,6 +141,12 @@ Sub mapEditor.show()
 			
 			Do:Sleep 1,1:Loop Until not Multikey(1)
 		Endif
+                
+                If userHotkey( fb.SC_F1) Then
+                        previewMap( uMap, uAtlas, editX+0.5, editY+0.5 )
+
+                        Do:Sleep 1,1:Loop Until not Multikey(1)
+                Endif
 		
 		If userHotkey( fb.SC_R, fb.SC_CONTROL ) Then
 			' Resize the map
@@ -188,7 +195,7 @@ Sub mapEditor.show()
 			
 			LoadingIndicator("Saving...")
 			
-			Dim As Integer e = uMap->save(fileName)
+			Dim As Integer e = uMap->saveMap(fileName)
 			If e Then
 				LoadingIndicator("Could not save map.")
 				errorDialouge(e, __errorTrace)
