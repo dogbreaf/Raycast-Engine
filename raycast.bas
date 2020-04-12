@@ -26,15 +26,39 @@ Do
 	ScreenLock
 		Line (0,0)-(__XRES,__YRES), rgb(40,40,40), BF
 		
-		put (10,10), test.screenBuffer, ALPHA
+                put (10,10), test.screenBuffer, PSET
 		
 		draw String (11,11), "FPS : " & CInt( test.frameRate ), rgb(120,255,10)
 	ScreenUnLock
 	
 	logError(test.draw(), __errorTrace, true)
 	logError(test.update(), __errorTrace, true)
-
 	
+        '
+        If Multikey(fb.SC_PAGEUP) Then
+                test.drawDistance += 2 * (1/test.frameRate)
+        Endif
+        If Multikey(fb.SC_PAGEDOWN) Then
+                test.drawDistance -= 2 * (1/test.frameRate)
+        Endif
+        
+        If Multikey(fb.SC_LEFT) Then
+                test.farPlane += 0.1 * (1/test.frameRate)
+        Endif
+        
+        If Multikey(fb.SC_RIGHT) Then
+                test.farPlane -= 0.1 * (1/test.frameRate)
+        Endif
+        
+        If Multikey(fb.SC_UP) Then
+                test.nearPlane += 0.1 * (1/test.frameRate)
+        Endif
+        
+        If Multikey(fb.SC_DOWN) Then
+                test.nearPlane -= 0.1 * (1/test.frameRate)
+        Endif
+        
+        ' Save a high-res screenshot
 	If Multikey(fb.SC_F12) Then
                 Line (0,__YRES/2)-step(__XRES, 10), rgb(0,0,0), BF
                 Draw String (__XRES/2 - 80, __YRES/2 + 2), "Taking screenshot..."

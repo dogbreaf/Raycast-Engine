@@ -225,8 +225,8 @@ type raycaster
 	
 	FOV		As Double = _pi/4
 	
-	farPlane	As Double = 2
-	nearPlane	As Double = 0.01
+	farPlane	As Double = 2.2
+	nearPlane	As Double = 0.18
 	
 	drawDistance	As Double = 20
 	
@@ -236,10 +236,23 @@ type raycaster
         
         interpolation   As sampleInterpolation = SI_NEAREST
         
+        ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+        ' Optional bugfixes
+        '
         ' temporary fix for flickering floor
         ' Has a big performance penalty
-        floorFix        As Boolean = true
+        floorFix                As Boolean = true
+        
+        ' Wether to draw the floor through transparent walls, floor rendered
+        ' through the transparent portions is not shaded correctly.
+        drawThroughWalls        As Boolean = false
+        
+        ' Wether to correct the fisheye effect. This makes the floor stick to
+        ' the walls better
+        fisheyeCorrection       As Boolean = true
 	
+        
+        ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 	' Timing
 	frameTime	As Double
 	frameRate	As Double
@@ -457,6 +470,11 @@ Function raycaster.draw() As errorCode
                         	Endif
                         Endif
 		Loop
+                
+                ' Attempt to fix the fisheye effect
+                If fisheyeCorrection Then
+                        distanceToWall = cos( playerA - rayAngle ) * distanceToWall
+                Endif
 		
 		' Draw the column of the buffer that this ray corresponds to
 		Dim As uByte	shade
@@ -532,6 +550,11 @@ Function raycaster.draw() As errorCode
                                         ' the depth should be at the draw distance
                                         If y < renderH/2 Then
                                                 depthBuffer(x,y) = drawDistance
+                                        Endif
+                                        
+                                        ' Don't show floor, just fog
+                                        If drawThroughWalls = false Then
+                                                outputPixel = fogColor
                                         Endif
                                 Endif
 			Endif
