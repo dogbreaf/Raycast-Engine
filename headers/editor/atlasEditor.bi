@@ -82,11 +82,37 @@ Sub editAtlas( ByRef uAtlas As textureAtlas Ptr, ByVal fileName As String = "unt
 				LoadingIndicator("Couldn't save, an error occurred.")
 				errorDialouge(e, __errorTrace)
 			Else			
-				LoadingIndicator("Saved.")
+				LoadingIndicator("Saved as " & fileName & ".")
 			Endif
 			
 			Sleep 1000
 		Endif
+                
+                If userHotkey(fb.SC_L, fb.SC_CONTROL) Then
+			' Save the atlas
+			blackBar()
+			
+			Dim As String fName
+			
+			Input "Load texture (file name) > ", fName
+			
+			If fName <> "" Then
+				LoadingIndicator("Loading textures...")
+                                errorDialouge( uAtlas->loadTextures(fName), __errorTrace )
+			Endif
+		Endif
+                
+                If userHotkey(fb.SC_R, fb.SC_CONTROL) Then
+                        blackBar()
+                        
+                        Dim As Integer size
+                        
+                        Input "Default texture size (pixels) > ", size
+                        
+                        If size > 1 Then
+                                uAtlas->textureSize = size
+                        Endif
+                Endif
 		
 		' Scroll the texture list
 		If userHotkey(fb.SC_UP) Then

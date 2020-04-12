@@ -15,6 +15,8 @@ type mapEditor
 	fileName		As String
 	atlasFile		As String
         
+        atlasScroll             As Integer
+        
         selectedObject          As Integer
         
         mapScale                As Integer = 8
@@ -32,18 +34,21 @@ Sub mapEditor.show()
 		Line (0,0)-(__XRES,__YRES), rgb(30,30,30), BF
 	
 		' Draw the texture atlas and texture previews
-		Put (__XRES - uAtlas->atlas->width - 16, 64), uAtlas->atlas, PSET
+		Put (__XRES - uAtlas->atlas->width - 16, 64 + atlasScroll), uAtlas->atlas, PSET
+                
+                '
+                Line (__XRES - uAtlas->atlas->width - 16, 0)-(__XRES, 30), rgb(30,30,30), BF
 		
 		uAtlas->setTexture(textureID)
 		scalePut (, __XRES - uAtlas->atlas->width - 16, 16, 32, 32, uAtlas->texture )
 		
-		Line (__XRES - uAtlas->atlas->width - 16 + uAtlas->textureX, 64 + uAtlas->textureY)-Step _
+		Line (__XRES - uAtlas->atlas->width - 16 + uAtlas->textureX, atlasScroll + 64 + uAtlas->textureY)-Step _
                         (uAtlas->textureSize,uAtlas->textureSize), rgb(0,255,0), B
 		
 		uAtlas->setTexture( uMap->segment(editX, editY).textureID )
 		scalePut (, __XRES - uAtlas->atlas->width + 32, 16, 32, 32, uAtlas->texture )
 		
-		Line (__XRES - uAtlas->atlas->width - 16 + uAtlas->textureX, 64 + uAtlas->textureY)-Step _
+		Line (__XRES - uAtlas->atlas->width - 16 + uAtlas->textureX, atlasScroll + 64 + uAtlas->textureY)-Step _
                         (uAtlas->textureSize,uAtlas->textureSize), rgb(0,255,255), B
 
 		' Draw some info 
@@ -247,19 +252,27 @@ Sub mapEditor.show()
                         uMap->fogDistance = dist
                 Endif
                 
-                ' 
+                ' Map zoom
                 If userHotkey( fb.SC_EQUALS, fb.SC_CONTROL, true ) Then
-                        uAtlas->textureSize += 8
+                        uAtlas->textureSize -= 8
                         If uAtlas->textureSize > uAtlas->atlas->width Then
                                 uAtlas->textureSize = uAtlas->atlas->width
                         Endif
                 Endif
                 
                 If userHotkey( fb.SC_MINUS, fb.SC_CONTROL, true ) Then
-                        uAtlas->textureSize -= 8
+                        uAtlas->textureSize += 8
                         If uAtlas->textureSize < 8 Then
                                 uAtlas->textureSize = 8
                         Endif
+                Endif
+                
+                ' Texture atlas scroll
+                If userHotkey( fb.SC_UP, fb.SC_LSHIFT, true ) Then
+                        atlasScroll += 8
+                Endif
+                If userHotkey( fb.SC_DOWN, fb.SC_LSHIFT, true ) Then
+                        atlasScroll -= 8
                 Endif
 		
 		'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''

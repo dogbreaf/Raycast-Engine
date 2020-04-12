@@ -53,7 +53,7 @@ Function userHotkey( ByVal key As Integer, ByVal modifier As Integer = -1, ByVal
 	
 	' Wait for keyUp to prevent key repeats 
 	If block and ret Then
-		Do:Sleep 10,1:Loop Until (not Multikey(key)) and IIF(modifier = -1, -1, not Multikey(modifier))
+		Do:Sleep 10,1:Loop Until not Multikey(key)
 	Endif
 	
 	' Return true/false

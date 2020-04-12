@@ -134,6 +134,9 @@ Function sampleTexture( ByVal sx As Double, _
 		
 	End Select
         
+        ret = ret and rgba(255,255,255,0)
+        ret += rgba(0,0,0,255)
+        
         Return ret
 End Function
 
@@ -313,7 +316,7 @@ Function raycaster.draw() As errorCode
 	Endif
 	
 	' Clear the buffer
-	Line this.screenBuffer, (0,0)-(this.renderW, this.renderH), rgb(0,0,0), BF
+	Line this.screenBuffer, (0,0)-(this.renderW*this.renderScale, this.renderH*this.renderScale), this.fogColor, BF
 	
 	' Render the floor
 	' Unlike the raycasting code I haven't fully wrapped my head around this yet
@@ -380,6 +383,12 @@ Function raycaster.draw() As errorCode
 				If sampleDepth > drawDistance Then
 					shade = 0
 				Endif
+                                
+                                ' Update the depth buffer
+                                If (UBound(this.depthBuffer, 1) < x) or (UBound(this.depthBuffer, 2) < y) Then
+                                        Return E_UNKNOWN
+                                Endif
+                                this.depthBuffer(x,y) = distance
 				
 				' Put it on the buffer
 				Line screenBuffer, (x*renderScale,(y + (renderH/2))*renderScale)-Step(this.renderScale, this.renderScale), _
@@ -473,17 +482,23 @@ Function raycaster.draw() As errorCode
 				depthBuffer(x,y) = this.drawDistance
 				
 			ElseIf y > Floor Then
-				' This is floor, shade it with a gradient for now
-				shade = 255-(255*(this.renderH/y))
-				
+                                shade = 255-(255*(this.renderH/y))
+                                
+				' The floor may have already been drawn with a texture
 				If drawFloor then
 					outputPixel = rgb(255,0,255)
 				Else
+                                        ' Shade the floor according to depth
 					outputPixel = rgb( shade, shade, shade )
 				Endif
-				
-				' Update the depth buffer
-				depthBuffer(x,y) = this.drawDistance
+                                
+                                ' Fix the depth buffer, the distance calculated before seems to be buggy
+                                depthBuffer(x,y) = ((255-shade)/255)*drawDistance
+                                
+                                ' The floor can't be further away than the wall, thats impossible
+                                If depthBuffer(x,y-1) < depthBuffer(x,y) Then
+                                        depthBuffer(x,y) = depthBuffer(x,y-1)
+                                Endif
 				
 			ElseIf distanceToWall >= drawDistance Then
 				outputPixel = this.fogColor
@@ -491,10 +506,7 @@ Function raycaster.draw() As errorCode
 				' Update the depth buffer
 				depthBuffer(x,y) = this.drawDistance
 				
-			Else
-				' Update the depth buffer
-				depthBuffer(x,y) = distanceToWall
-				
+			Else				
 				' This is the wall, calculate the shading depending on distance to the wall
 				shade = 255-(255*(distanceToWall/drawDistance))
 				
@@ -509,7 +521,19 @@ Function raycaster.draw() As errorCode
 				outputPixel = sampleTexture( sampleX, sampleY, this.atlas.texture, interpolation )
 				
 				' Shade it if its not "transparent"
-				OutputPixel = shadePixel( outputPixel, shade, this.fogColor )
+                                If outputPixel <> rgb(255,0,255) Then
+                                        ' Applying shade if it is transparent makes it not transparent
+                                        OutputPixel = shadePixel( outputPixel, shade, this.fogColor )
+                                        
+                                        ' Update the depth buffer
+                                        depthBuffer(x,y) = distanceToWall
+                                Else
+                                        ' If the pixel is transparent but above the middle of the screen 
+                                        ' the depth should be at the draw distance
+                                        If y < renderH/2 Then
+                                                depthBuffer(x,y) = drawDistance
+                                        Endif
+                                Endif
 			Endif
 			
 			' Draw to the buffer
