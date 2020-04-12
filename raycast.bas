@@ -15,9 +15,31 @@ ScreenRes __XRES,__YRES,32
 Dim As raycaster	test = raycaster(__XRES-20,__YRES-20,IIF(__XRES > 400, 4, 2))
 Dim As datapack         datastore
 
-If right(command(1), 3) = "arc" Then
+
+Dim As String FileName
+
+' If the default package exists, use that
+If fileExists("default.arc") Then
+        
+        FileName = "default.arc"
+Endif
+
+' Otherwise check for a package on the commandline
+If Command(1) <> "" Then
+        FileName = Command(1)
+Endif
+
+If Command(2) <> "" Then
+        ' Load seperate files from the CMD
+        logError( test.map.loadMap(command(1)), __errorTrace, true )
+	logError( test.atlas.loadAtlas(command(2)), __errorTrace, true )
+ElseIf FileName = "" Then
+        ' Default built in file paths if everything else failed
+        logError( test.map.loadMap("data/map.dat"), __errorTrace, true )
+        logError( test.atlas.loadAtlas("data/atlas.dat"), __errorTrace, true )
+Else
         ' Load from an arc datapack
-        logError( datastore.openPack(command(1)), __errorTrace, true )
+        logError( datastore.openPack(FileName), __errorTrace, true )
         
         logError( datastore.seekToFile("map.dat"), __errorTrace, true )
         logError( test.map.load(datastore.fileHandle), __errorTrace, true )
@@ -25,15 +47,7 @@ If right(command(1), 3) = "arc" Then
         logError( datastore.seekToFile("atlas.dat"), __errorTrace, true )
         logError( test.atlas.load(datastore.fileHandle), __errorTrace, true )
         
-ElseIf command(1) <> "" Then
-        ' Load seperate files from the CMD
-	logError( test.map.loadMap(command(1)), __errorTrace, true )
-	logError( test.atlas.loadAtlas(command(2)), __errorTrace, true )
-        
-Else
-        ' Default built in file paths
-	logError( test.map.loadMap("data/map.dat"), __errorTrace, true )
-	logError( test.atlas.loadAtlas("data/atlas.dat"), __errorTrace, true )
+        datastore.closePack()
 Endif
 
 test.getMapSettings()
