@@ -5,19 +5,35 @@
 #include "headers/map.bi"
 #include "headers/raycast.bi"
 
+#include "headers/datapack.bi"
+
 #define __XRES 800
 #define __YRES 600
 
 ScreenRes __XRES,__YRES,32
 
 Dim As raycaster	test = raycaster(__XRES-20,__YRES-20,IIF(__XRES > 400, 4, 2))
+Dim As datapack         datastore
 
-If command(1) <> "" Then
+If right(command(1), 3) = "arc" Then
+        ' Load from an arc datapack
+        logError( datastore.openPack(command(1)), __errorTrace, true )
+        
+        logError( datastore.seekToFile("map.dat"), __errorTrace, true )
+        logError( test.map.load(datastore.fileHandle), __errorTrace, true )
+        
+        logError( datastore.seekToFile("atlas.dat"), __errorTrace, true )
+        logError( test.atlas.load(datastore.fileHandle), __errorTrace, true )
+        
+ElseIf command(1) <> "" Then
+        ' Load seperate files from the CMD
 	logError( test.map.loadMap(command(1)), __errorTrace, true )
 	logError( test.atlas.loadAtlas(command(2)), __errorTrace, true )
+        
 Else
-	logError( test.map.loadMap("data/test.dat"), __errorTrace, true )
-	logError( test.atlas.loadAtlas("data/test.atlas.dat"), __errorTrace, true )
+        ' Default built in file paths
+	logError( test.map.loadMap("data/map.dat"), __errorTrace, true )
+	logError( test.atlas.loadAtlas("data/atlas.dat"), __errorTrace, true )
 Endif
 
 test.getMapSettings()
