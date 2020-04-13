@@ -71,8 +71,8 @@ Else
 	' Edit the map and texture atlas
 	thisMapEditor.uAtlas = @uAtlas
 	thisMapEditor.uMap = @uMap
+        
 	thisMapEditor.fileName = mapFile
-	
 	thisMapEditor.atlasFile = atlasFile
 	
 	thisMapEditor.show()

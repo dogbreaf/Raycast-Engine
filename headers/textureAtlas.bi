@@ -3,6 +3,7 @@
 
 #include once "fbgfx.bi"
 #include once "file.bi"
+#include once "crt.bi"
 
 ' Free an image without risk of double freeing it 
 Sub safeFree( ByRef image As Any Ptr ) 
@@ -15,6 +16,7 @@ End Sub
 enum textureType
 	T_LARGE		= 1
 	T_ANIMATED
+        T_COMPOSITE
 end enum
 
 type metaTexture
@@ -68,6 +70,7 @@ type textureAtlas
 	
 	Declare Function addLargeTexture( ByVal As Integer, ByVal As Integer, ByVal As Integer, ByVal As Integer ) As errorCode
 	Declare Function addAnimatedTexture( ByVal As Integer, ByVal As Integer ) As errorCode
+        Declare Function addCompositeTexture( ByVal As Integer, ByVal As Integer ) As errorCode
 	
 	Declare Constructor ()
 	Declare Destructor ()
@@ -332,6 +335,50 @@ Function textureAtlas.setTexture( ByVal ID As Integer ) As errorCode
 			frameID += workingTexture->frameStart
 			
 			this.setTexture(frameID)
+                        
+                Case T_COMPOSITE
+                        ' Draw composite two textures
+                        Dim As Integer bgID = workingTexture->frameStart
+                        Dim As Integer fgID = workingTexture->frameEnd
+                        
+                        Static As fb.Image Ptr tex
+                        
+                        ' Instead of seperately finding texture coords
+                        ' I am using setTexture because it means you can
+                        ' composite composite textures, large textures and
+                        ' animated textures on top of eachoter as deep as you
+                        ' want.
+                        
+                        ' Set the texture to the decal texture
+                        this.setTexture(fgID)
+                        
+                        ' Copy that into a temp buffer
+                        If tex = 0 Then
+                                tex = ImageCreate( this.texture->width, this.texture->height )
+                                
+                                consolePrint("Create tex")
+                                
+                        ElseIf (this.texture->width <> tex->width) or _
+                               (this.texture->height <> tex->height) Then
+                           
+                                If tex <> 0 Then
+                                        ImageDestroy( tex ):tex = 0
+                                Endif
+                                
+                                consolePrint("Resize tex")
+                                
+                                tex = ImageCreate( this.texture->width, this.texture->height )
+                        Endif
+                        
+                        ' memcpy seems to be faster
+                        'Put tex, (0,0), this.texture, PSET
+                        memcpy( tex, this.texture, sizeOf(fb.Image)+ tex->pitch * tex->height + tex->bpp * tex->width )
+                        
+                        ' Set the texture to the base texture
+                        this.setTexture(bgID)
+                        
+                        ' Composite the decal texture on top
+                        Put this.texture, (0,0), tex, TRANS
 			
 		Case Else
 			Return E_UNKNOWN
@@ -384,6 +431,23 @@ Function textureAtlas.addAnimatedTexture( ByVal startFrame As Integer, ByVal end
 	If (startFrame > endFrame) or (endFrame = 0) Then
 		Return E_BAD_PARAMETERS
 	Endif
+	
+	this.mTexture(count).frameStart = startFrame
+	this.mTexture(count).frameEnd = endFrame
+	
+	Return E_NO_ERROR
+End Function
+
+Function textureAtlas.addCompositeTexture( ByVal startFrame As Integer, ByVal endFrame As Integer ) As errorCode
+	Dim As Integer count = UBound(this.mTexture)+1
+	
+	ReDim Preserve this.mTexture( count ) As metaTexture
+	
+	If UBound(this.mTexture) < count Then
+		Return E_RESIZE_FAILED
+	Endif
+	
+	this.mTexture(count).texType = T_COMPOSITE
 	
 	this.mTexture(count).frameStart = startFrame
 	this.mTexture(count).frameEnd = endFrame

@@ -45,17 +45,25 @@ Sub editAtlas( ByRef uAtlas As textureAtlas Ptr, ByRef fileName As String )
                 For i As Integer = 0 to UBound(uAtlas->mTexture)
                         listItems(i) = i & ": "
                         
-                        If uAtlas->mTexture(i+listScroll).texType = T_LARGE Then
+                        Select Case uAtlas->mTexture(i+listScroll).texType
+                        
+                        Case T_LARGE
                                 listItems(i) = listItems(i) & "LRG " & uAtlas->mTexture(i).x & "," & _
                                         uAtlas->mTexture(i).y & " " & _
                                         uAtlas->mTexture(i).w & "x" & _
                                         uAtlas->mTexture(i).h
-                        ElseIf uAtlas->mTexture(i+listScroll).texType = T_ANIMATED Then
+                                        
+                        Case T_ANIMATED
                                 listItems(i) = listItems(i) & "ANI " & uAtlas->mTexture(i).frameStart & "->" & _
                                         uAtlas->mTexture(i).frameEnd
-                        Else
-                                listItems(i) = "Unknown"
-                        Endif
+                        
+                        Case T_COMPOSITE
+                                listItems(i) = listItems(i) & "DEC " & uAtlas->mTexture(i).frameStart & "/" & _
+                                        uAtlas->mTexture(i).frameEnd
+                                
+                        Case Else
+                                listItems(i) = listItems(i) & "??? Unknown type"
+                        End Select
                 Next
                 selectList( 32 + uAtlas->atlas->width, 100, 256, 400, listItems(), listSelection )                
 		ScreenUnlock
@@ -134,7 +142,9 @@ Sub editAtlas( ByRef uAtlas As textureAtlas Ptr, ByRef fileName As String )
 			
 			Dim As textureType	texType
 			
-			Print "(" & T_LARGE & " = LRG, " & T_ANIMATED & " = ANI) > ";
+			Print "(" & T_LARGE & " = LRG, " & T_ANIMATED & _
+                                " = ANI, " & T_COMPOSITE & " = DEC) > ";
+                                
 			Input texType
 			
 			If texType = T_LARGE Then
@@ -150,6 +160,7 @@ Sub editAtlas( ByRef uAtlas As textureAtlas Ptr, ByRef fileName As String )
 					Print "Added large texture..."
 					Sleep 1000
 				Endif
+                                
 			ElseIf texType = T_ANIMATED Then
 				Dim As Integer ff,lf,tmp
 				
@@ -169,6 +180,25 @@ Sub editAtlas( ByRef uAtlas As textureAtlas Ptr, ByRef fileName As String )
 					Print "Added animated texture..."
 					Sleep 1000
 				Endif
+                                
+                        ElseIf texType = T_COMPOSITE Then
+                                Dim As Integer ff,lf,tmp
+				
+				blackBar()
+				Input "IDs to composite (base,decal) > ", ff, lf
+				
+				If lf > 0 Then
+					uAtlas->addCompositeTexture(ff,lf)
+					
+					blackBar()
+					Print "Added composite texture..."
+					Sleep 1000
+				Endif
+                                
+                        Else
+                                blackBar() 
+                                Print "No texture added..."
+                                Sleep 250
 			Endif
 		Endif
 		
