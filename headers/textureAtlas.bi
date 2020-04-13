@@ -427,7 +427,7 @@ Function textureAtlas.sampleTexture( ByVal sX As Double, ByVal sY As Double, ByV
                         Return 0
                 Endif
         Else
-                If (tID-2048) < Ubound(this.mTexture) Then
+                If (tID-2048) > Ubound(this.mTexture) Then
                         logError(E_BAD_PARAMETERS, __errorTrace, false)
                         
                         Return 0
