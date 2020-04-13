@@ -1,13 +1,34 @@
 ' Manage map data
 '
 
+enum segmentFlags
+        ' These affect rendering and the world
+        SF_CEILING      = &b00000001    ' Wether to draw the ceiling
+        SF_COLLISION    = &b00000010    ' Wether the player should collide (invisible walls)
+        SF_UPDATEFOG    = &b00000100    ' Wether the fog colour should change when standing here
+        SF_RESERVED1    = &b00001000
+        
+        ' These affect the player and gameplay
+        SF_DEATH        = &b10000000    ' Kill the player instantly
+        SF_BURNING      = &b01000000    ' set fire to the player
+        SF_RESERVED2    = &b00100000
+        SF_RESERVED3    = &b00010000
+end enum
+
 ' Represents a 1x1 segment of the map
 Type mapSegment
 	solid		As Byte
+        flags           As Byte
+        
+        ' textures
 	textureID	As LongInt
+        ceilingID       As LongInt
         
         ' To be used later
         targetFogColor  As ULongInt
+        
+        triggerID       As LongInt
+        soundEffectID   As LongInt
 End Type
 
 ' Represents an object in the map
@@ -30,8 +51,8 @@ Type mapObject
 	' The ID of the texture to use
 	textureID	As LongInt
         
-        ' Wether the object has collision
-        solid           As Byte
+        ' Information about the object
+        flags           As Byte
 End Type
 
 ' The map

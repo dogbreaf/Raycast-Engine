@@ -86,11 +86,22 @@ Sub mapEditor.show()
 			For x As Integer = 0 to uMap->mapW
 				uAtlas->previousID = -1
 				
-				logError(uAtlas->setTexture( uMap->segment(x,y).textureID ), __errorTrace, false)
+                                If Multikey(fb.SC_C) Then
+                                        logError(uAtlas->setTexture( uMap->segment(x,y).ceilingID ), __errorTrace, false)
+                                        
+                                Else
+                                        logError(uAtlas->setTexture( uMap->segment(x,y).textureID ), __errorTrace, false)
+                                        
+                                Endif
+                                
 				scalePut(, 16+(x*mapScale), 16+(y*mapScale), mapScale, mapScale, uAtlas->texture )
 					
 				If uMap->segment(x,y).solid Then
 					Line ( 16 + ( x*mapScale ), 16 + ( y*mapScale ) )-Step(mapScale,mapScale), rgb(255,0,120), B
+                                        
+                                ElseIf uMap->segment(x,y).flags and SF_CEILING Then
+                                        Line ( 16 + ( x*mapScale ), 16 + ( y*mapScale ) )-Step(2,2), rgb(0,120,120), B
+                                        
 				Endif
 			Next
 		Next
@@ -350,6 +361,14 @@ Sub mapEditor.show()
 		If userHotkey(fb.SC_Q,,false) Then
 			uMap->segment(editX, editY).solid = 0
 			uMap->segment(editX, editY).textureID = 0
+                        uMap->segment(editX, editY).ceilingID = 0
+                        
+                        uMap->segment(editX, editY).flags = 0
+			
+			Sleep 1,1
+		EndIf
+                If userHotkey(fb.SC_Q,fb.SC_LSHIFT,false) Then
+			uMap->segment(editX, editY).solid = 0
 			
 			Sleep 1,1
 		EndIf
@@ -360,8 +379,20 @@ Sub mapEditor.show()
 			Sleep 1,1
 		Endif
 		If userHotkey(fb.SC_F,,false) Then
-			uMap->segment(editX, editY).solid = 0
 			uMap->segment(editX, editY).textureID = textureID
+			
+			Sleep 1,1
+		Endif
+                If userHotkey(fb.SC_C,,false) Then
+			uMap->segment(editX, editY).ceilingID = textureID
+                        uMap->segment(editX, editY).flags = uMap->segment(editX, editY).flags or SF_CEILING
+			
+			Sleep 1,1
+		Endif
+                If userHotkey(fb.SC_C,fb.SC_LSHIFT,false) Then
+                        If uMap->segment(editX, editY).flags and SF_CEILING Then
+                                uMap->segment(editX, editY).flags = uMap->segment(editX, editY).flags xor SF_CEILING
+                        Endif
 			
 			Sleep 1,1
 		Endif

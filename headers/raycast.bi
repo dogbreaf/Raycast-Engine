@@ -380,6 +380,13 @@ Function raycaster.draw() As errorCode
                                         this.atlas.previousID = -1
                                 Endif
 				
+                                ' Make sure the map coords are in-bounds
+                                If (0 > mapX > this.map.mapW) or (0 > mapY > this.map.mapH) Then
+                                        consolePrint(mapX & " " & mapY)
+                                        
+                                        logError(E_BAD_PARAMETERS, __errorTrace, true)
+                                Endif
+                                
 				' Grab the current floor texture
 				If (mapX < this.map.mapW) and (mapY < this.map.mapH) and (mapX > 0) and (mapY > 0) Then
 					If this.map.segment( mapX, mapY).solid = 0 Then
@@ -393,12 +400,15 @@ Function raycaster.draw() As errorCode
 				
 				logError(retCode, __errorTrace, false)
 				
-				' Sample the texture
-				Dim As UInteger sample = sampleTexture( abs(sampleX+0.5), abs(sampleY+0.5), this.atlas.texture, interpolation )
-				
-				' Calculate the distance from the player
+                                ' Calculate the distance from the player
 				Dim As Double distance = sqr( (( playerX-sampleX ) ^ 2) + (( playerY-sampleY ) ^ 2) )
-				
+                                Dim As UInteger sample = fogColor
+                                
+                                If distance < drawDistance Then
+                                        ' Sample the texture
+                                         sample = sampleTexture( abs(sampleX+0.5), abs(sampleY+0.5), this.atlas.texture, interpolation )
+				Endif
+                                
 				' Shade it accordingly
 				Dim As UInteger shade = 255-(255*(distance/drawDistance))
 				
@@ -415,6 +425,24 @@ Function raycaster.draw() As errorCode
 				' Put it on the buffer
 				Line screenBuffer, (x*renderScale,(y + (renderH/2))*renderScale)-Step(this.renderScale, this.renderScale), _
 					shadePixel(sample, shade, this.fogColor), BF
+                                        
+                                ' Ceiling?
+                                If (mapX < this.map.mapW) and (mapY < this.map.mapH) and (mapX > 0) and (mapY > 0) Then
+                                        If this.map.segment(mapX,mapY).flags and SF_CEILING Then
+                                                ' Sample and draw the ceiling too
+                                                If this.map.segment(mapX, mapY).ceilingID <> this.map.segment(mapX, mapY).textureID Then
+                                                        If floorFix Then
+                                                                this.atlas.previousID = -1
+                                                        Endif
+                                                        
+                                                        this.atlas.setTexture( this.map.segment(mapX, mapY).ceilingID )
+                                                        sample = sampleTexture( abs(sampleX+0.5), abs(sampleY+0.5), this.atlas.texture, interpolation)
+                                                Endif
+                                                
+                                                Line screenBuffer, (x*renderScale,((renderH/2)-y)*renderScale)-Step(this.renderScale, this.renderScale), _
+                                                        shadePixel(sample, shade, this.fogColor), BF
+                                        Endif
+                                Endif
 			Next
 		Next
 	Endif
@@ -502,8 +530,8 @@ Function raycaster.draw() As errorCode
                 	
                 	' Draw the appropriate thing
 			If y < Ceiling Then
-				' This is the sky, leave it blank for now
-				outputPixel = this.fogColor
+				' this is drawn by the floor drawing routine now
+				outputPixel = rgb(255,0,255)
 				
 				' Update the depth buffer
 				depthBuffer(x,y) = this.drawDistance
