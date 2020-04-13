@@ -336,7 +336,13 @@ Function raycaster.draw() As errorCode
 	If this.screenBuffer = 0 Then
 		Return E_NO_BUFFER
 	Endif
-	
+        
+        For y As Integer = 0 to renderH
+                For x As Integer = 0 to renderW
+                        depthBuffer(x,y) = drawDistance
+                Next
+        Next
+        
 	' Clear the buffer
 	Line this.screenBuffer, (0,0)-(this.renderW*this.renderScale, this.renderH*this.renderScale), this.fogColor, BF
 	
@@ -382,36 +388,22 @@ Function raycaster.draw() As errorCode
 				
                                 ' Make sure the map coords are in-bounds
                                 If (0 > mapX > this.map.mapW) or (0 > mapY > this.map.mapH) Then
-                                        consolePrint(mapX & " " & mapY)
-                                        
                                         logError(E_BAD_PARAMETERS, __errorTrace, true)
                                 Endif
-                                
-				' Grab the current floor texture
-				If (mapX < this.map.mapW) and (mapY < this.map.mapH) and (mapX > 0) and (mapY > 0) Then
-					If this.map.segment( mapX, mapY).solid = 0 Then
-						retCode = this.atlas.setTexture( this.map.segment( mapX, mapY).textureID )
-					Else
-						retCode = this.atlas.setTexture(0)
-					Endif
-				Else
-					retCode = this.atlas.setTexture( 0 )
-				Endif
-				
-				logError(retCode, __errorTrace, false)
-				
-                                ' Calculate the distance from the player
+  
+                                ' Do the sampling
 				Dim As Double distance = sqr( (( playerX-sampleX ) ^ 2) + (( playerY-sampleY ) ^ 2) )
                                 Dim As UInteger sample = fogColor
+                                Dim As UInteger shade = 255-(255*(distance/drawDistance))
                                 
-                                If distance < drawDistance Then
-                                        ' Sample the texture
-                                         sample = sampleTexture( abs(sampleX+0.5), abs(sampleY+0.5), this.atlas.texture, interpolation )
+                                ' Grab the current floor texture
+				If (mapX < this.map.mapW) and (mapY < this.map.mapH) and (mapX > 0) and (mapY > 0) Then
+					 If distance < drawDistance Then
+                                                ' Sample the texture
+                                                 sample = this.atlas.sampleTexture( sampleX+0.5, sampleY+0.5, this.map.segment(mapX,mapY).textureID, interpolation )
+                                        Endif
 				Endif
-                                
-				' Shade it accordingly
-				Dim As UInteger shade = 255-(255*(distance/drawDistance))
-				
+
 				If sampleDepth > drawDistance Then
 					shade = 0
 				Endif
@@ -420,33 +412,31 @@ Function raycaster.draw() As errorCode
                                 If (UBound(this.depthBuffer, 1) < x) or (UBound(this.depthBuffer, 2) < y) Then
                                         Return E_UNKNOWN
                                 Endif
-                                this.depthBuffer(x,y) = distance
+                                
+                                this.depthBuffer(x,(renderH/2)+y)   = distance
+                                this.depthBuffer(x,(renderH/2)-y)   = distance
 				
 				' Put it on the buffer
 				Line screenBuffer, (x*renderScale,(y + (renderH/2))*renderScale)-Step(this.renderScale, this.renderScale), _
 					shadePixel(sample, shade, this.fogColor), BF
-                                        
-                                ' Ceiling?
+                                
+                                ' Sample and draw the ceiling too
                                 If (mapX < this.map.mapW) and (mapY < this.map.mapH) and (mapX > 0) and (mapY > 0) Then
                                         If this.map.segment(mapX,mapY).flags and SF_CEILING Then
-                                                ' Sample and draw the ceiling too
-                                                If this.map.segment(mapX, mapY).ceilingID <> this.map.segment(mapX, mapY).textureID Then
-                                                        If floorFix Then
-                                                                this.atlas.previousID = -1
-                                                        Endif
-                                                        
-                                                        this.atlas.setTexture( this.map.segment(mapX, mapY).ceilingID )
-                                                        sample = sampleTexture( abs(sampleX+0.5), abs(sampleY+0.5), this.atlas.texture, interpolation)
+                                                                                                If this.map.segment(mapX, mapY).ceilingID <> this.map.segment(mapX, mapY).textureID Then
+                                                        sample = this.atlas.sampleTexture( sampleX+0.5, sampleY+0.5, this.map.segment(mapX,mapY).ceilingID, interpolation )
                                                 Endif
                                                 
                                                 Line screenBuffer, (x*renderScale,((renderH/2)-y)*renderScale)-Step(this.renderScale, this.renderScale), _
                                                         shadePixel(sample, shade, this.fogColor), BF
+                                        Else
+                                                this.depthBuffer(x,(renderH/2)-y)   = drawDistance
                                         Endif
                                 Endif
 			Next
 		Next
 	Endif
-	
+        
 	' Cast rays and render to the buffer
 	For x As Double = 0 to this.renderW
 		' Variables we need
@@ -533,9 +523,6 @@ Function raycaster.draw() As errorCode
 				' this is drawn by the floor drawing routine now
 				outputPixel = rgb(255,0,255)
 				
-				' Update the depth buffer
-				depthBuffer(x,y) = this.drawDistance
-				
 			ElseIf y > Floor Then
                                 shade = 255-(255*(this.renderH/y))
                                 
@@ -546,19 +533,6 @@ Function raycaster.draw() As errorCode
                                         ' Shade the floor according to depth
 					outputPixel = rgb( shade, shade, shade )
 				Endif
-                                
-                                ' Fix the depth buffer, the distance calculated before seems to be buggy
-                                depthBuffer(x,y) = ((255-shade)/255)*drawDistance
-                                
-                                ' The floor can't be further away than the wall, thats impossible
-                                If depthBuffer(x,y-1) < depthBuffer(x,y) Then
-                                        depthBuffer(x,y) = depthBuffer(x,y-1)
-                                        
-                                ElseIf depthBuffer(x,y) < nearPlane Then
-                                        ' The floor can't be "touching" the screen eitehr
-                                        depthBuffer(x,y) = nearPlane
-                                        
-                                Endif
 				
 			ElseIf distanceToWall >= drawDistance Then
 				outputPixel = this.fogColor
@@ -572,17 +546,9 @@ Function raycaster.draw() As errorCode
 				
 				' Calculate the other texture coordinate
 				SampleY = ((y-ceiling)/(this.renderH-(ceiling*2)))
-				
-				' Set the texture atlas
-				retCode = this.atlas.setTexture( mapSegment->textureID )
-				logError(retCode, __errorTrace, false)
-                                
-                                If retCode Then
-                                        consolePrint( mapSegment->textureID & " is not a valid textureID")
-                                Endif
-				
+
 				' Sample the texture
-				outputPixel = sampleTexture( sampleX, sampleY, this.atlas.texture, interpolation )
+				outputPixel = this.atlas.sampleTexture( sampleX, sampleY, mapSegment->textureID, interpolation )
 				
 				' Shade it if its not "transparent"
                                 If outputPixel <> rgb(255,0,255) Then
@@ -591,6 +557,7 @@ Function raycaster.draw() As errorCode
                                         
                                         ' Update the depth buffer
                                         depthBuffer(x,y) = distanceToWall
+                                        
                                 Else
                                         ' If the pixel is transparent but above the middle of the screen 
                                         ' the depth should be at the draw distance
@@ -667,10 +634,8 @@ Function raycaster.draw() As errorCode
 						Dim As Integer pX = objectColumn
 						Dim As Integer pY = objectCeiling + y
 						
-						this.atlas.setTexture( workingObject->textureID )
-						
 						Dim As tPixel sample
-						sample.value = sampleTexture( sampleX, sampleY, this.atlas.texture, interpolation )
+						sample.value = this.atlas.sampleTexture( sampleX, sampleY, workingObject->textureID, interpolation )
 						
 						' If it is not transparent and not off screen
 						If (sample.r <> 255) and (sample.b <> 255) and (sample.g <> 0) and _

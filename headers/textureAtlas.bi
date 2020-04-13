@@ -67,6 +67,8 @@ type textureAtlas
 	
 	Declare Function loadTextures( ByVal As String, ByVal As Integer = -1, ByVal As Integer = -1 ) As errorCode
 	Declare Function setTexture( ByVal As Integer ) As errorCode
+        
+        Declare Function sampleTexture( ByVal As Double, ByVal As Double, ByVal As Integer, ByVal As Integer = 0 ) As UInteger
 	
 	Declare Function addLargeTexture( ByVal As Integer, ByVal As Integer, ByVal As Integer, ByVal As Integer ) As errorCode
 	Declare Function addAnimatedTexture( ByVal As Integer, ByVal As Integer ) As errorCode
@@ -383,6 +385,133 @@ Function textureAtlas.setTexture( ByVal ID As Integer ) As errorCode
 	Endif
 	
 	Return E_NO_ERROR
+End Function
+
+' Sample directly from the atlas
+Function textureAtlas.sampleTexture( ByVal sX As Double, ByVal sY As Double, ByVal tID As Integer, ByVal i As Integer = 0 ) As UInteger
+        ' The position of the target texture
+        Dim As Integer tX
+        Dim As Integer tY
+        Dim As Integer tW
+        Dim As Integer tH
+        
+        ' The size of the atlas in textures
+        Dim As Integer atlasW = this.atlas->width / this.textureSize
+	Dim As Integer atlasH = this.atlas->height / this.textureSize
+        
+        ' The output
+        Dim As UInteger sample
+        
+        ' Update the animation timer	
+	If 1000*(timer-FrameTimer) > 250 Then
+		frameNumber += 1
+		
+		If frameNumber > 1024 Then
+			frameNumber = 0
+		Endif
+		
+		frameTimer = timer
+	Endif
+        
+        ' Make sure there is a texture to sample
+        If this.atlas = 0 Then
+                logError(E_NO_BUFFER, __errorTrace, false)
+                Return 0
+        Endif
+        
+        ' Calculate the texture position in the texture atlas
+        If tID < 2048 Then
+                If (tID < 0) or (tID > (atlasW * atlasH)) Then
+                        logError(E_BAD_PARAMETERS, __errorTrace, false)
+                        
+                        Return 0
+                Endif
+        Else
+                If (tID-2048) < Ubound(this.mTexture) Then
+                        logError(E_BAD_PARAMETERS, __errorTrace, false)
+                        
+                        Return 0
+                Endif
+        Endif
+        
+        ' Find the texture coords
+        If tID < 2048 Then
+                ' Get the position of a regular texture
+                Dim As Integer searchID
+                
+                ' Find the X/Y Coordinate of the texture in the atlas
+		For y As Integer = 0 to atlasH-1
+			For x As Integer = 0 to atlasW-1
+				If searchID = tID Then
+					tX = x*this.textureSize
+					tY = y*this.textureSize
+					
+					Exit For, For
+				Endif
+				
+				searchID += 1
+			Next
+		Next
+                
+                ' The width and height are standard
+                tW = this.textureSize
+                tH = this.textureSize
+                
+        Else
+                Dim As metaTexture Ptr  workingTexture = @this.mTexture(tID-2048)
+                
+                Select Case workingTexture->texType
+                
+                Case T_LARGE
+                        ' The coords are in the texture
+                        tX = workingTexture->X
+                        tY = workingTexture->Y
+                        tW = workingTexture->w
+                        tH = workingTexture->h
+                        
+                Case T_ANIMATED
+                        ' The coords move depending on the frame
+                        Dim As Integer searchID
+                        Dim As Integer frameID = frameNumber mod (workingTexture->frameEnd - workingTexture->frameStart)
+			
+			frameID += workingTexture->frameStart
+                        
+                        ' Get the sample from the correct frame
+                        Return this.sampleTexture( sX, sY, frameID, i )
+                
+                Case T_COMPOSITE
+                        ' This could be from either texture
+                        sample = this.sampleTexture( sX, sY, workingTexture->frameEnd, i)
+                        
+                        If (sample and rgb(255,255,255)) = rgb(255,0,255) Then
+                                Return this.sampleTexture( sX, sY, workingTexture->frameStart, i)
+                        Else
+                                Return sample
+                        Endif
+                Case Else
+                        
+                        Return 0
+                        
+                End Select
+        Endif
+        
+        ' Sample the correct location
+        Dim As Integer sampleX = tX + ( frac(sX) * (tW - 1) )
+        Dim As Integer sampleY = tY + ( frac(sY) * (tH - 1) )
+        
+        ' Make sure we don't create an out of bounds pointer
+        If ( 0 < sampleX < this.atlas->width ) and ( 0 < sampleY < this.atlas->height ) Then
+                'consolePrint( this.atlas->width & " " & this.atlas->height )
+                'consolePrint( sampleX & " " & sampleY )
+                'logError(E_BAD_DATA, __errorTrace, true)
+                
+                'Return 0
+        Endif
+        
+        ' Get a pointer to the correct pixel
+        Dim As UInteger Ptr ret = ( cast(Any Ptr, this.atlas) + sizeOf(fb.Image) + this.atlas->pitch * sampleY + this.atlas->bpp * sampleX )
+        
+        Return *ret
 End Function
 
 Function textureAtlas.addLargeTexture( ByVal x As Integer, ByVal y As Integer, ByVal w As Integer, ByVal h As Integer ) As errorCode

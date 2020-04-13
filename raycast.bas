@@ -19,7 +19,6 @@ Dim As String FileName
 
 ' If the default package exists, use that
 If fileExists("default.arc") Then
-        
         FileName = "default.arc"
 Endif
 
