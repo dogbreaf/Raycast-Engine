@@ -256,6 +256,9 @@ type raycaster
         ' Wether to correct the fisheye effect. This makes the floor stick to
         ' the walls better
         fisheyeCorrection       As Boolean = true
+        
+        ' Auto-enable/disable fixes depending on how bad the performance is
+        autoPerformance         As Boolean = false
 	
         
         ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -679,6 +682,45 @@ Function raycaster.update() As errorCode
 	' Calculate frame delta and framerate
 	this.frameTime = timer-this.frameTime
         this.frameRate = 1/this.frameTime
+        
+        ' Auto performance control
+        If autoPerformance Then
+                Dim As Boolean adjusted
+                
+                If frameRate < 12 and floorFix = true Then
+                        ' Optimize for performance
+                        floorFix = false
+                        drawThroughWalls = false
+                        
+                        adjusted = true
+                Endif
+                
+                If frameRate < 8 and drawDistance > 4 Then
+                        ' Decrease draw distance
+                        drawDistance -= 0.1
+                        
+                        adjusted = true
+                Endif
+                
+                If frameRate > 12 and drawDistance < 8 Then
+                        ' Increase draw distance
+                        drawDistance += 0.1
+                        
+                        adjusted = true
+                Endif
+                
+                If frameRate > 16 and floorFix = false Then
+                        ' Optimze for best visuals
+                        floorFix = true
+                        drawThroughWalls = true
+                        
+                        adjusted = true
+                Endif
+                
+                If adjusted Then
+                        'consolePrint("Adjusting performance...")
+                Endif
+        Endif
         
         ' Store the player's position
         Dim As Double oldPlayerX = PlayerX

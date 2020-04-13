@@ -35,6 +35,8 @@ Function previewMap( ByVal map As gameMap Ptr, ByVal atlas As textureAtlas Ptr, 
         preview.playerX = px
         preview.playerY = py
         
+        preview.autoPerformance = true
+        
         Do
                 ScreenLock
                 

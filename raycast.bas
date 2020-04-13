@@ -15,7 +15,6 @@ ScreenRes __XRES,__YRES,32
 Dim As raycaster	test = raycaster(__XRES-20,__YRES-20,IIF(__XRES > 400, 4, 2))
 Dim As datapack         datastore
 
-
 Dim As String FileName
 
 ' If the default package exists, use that
@@ -51,6 +50,8 @@ Else
 Endif
 
 test.getMapSettings()
+
+test.autoPerformance = true
 
 Do
 	ScreenLock

@@ -341,6 +341,7 @@ Function textureAtlas.setTexture( ByVal ID As Integer ) As errorCode
                         Dim As Integer bgID = workingTexture->frameStart
                         Dim As Integer fgID = workingTexture->frameEnd
                         
+                        ' The temporary buffer used for the decal
                         Static As fb.Image Ptr tex
                         
                         ' Instead of seperately finding texture coords
@@ -355,24 +356,17 @@ Function textureAtlas.setTexture( ByVal ID As Integer ) As errorCode
                         ' Copy that into a temp buffer
                         If tex = 0 Then
                                 tex = ImageCreate( this.texture->width, this.texture->height )
-                                
-                                consolePrint("Create tex")
-                                
-                        ElseIf (this.texture->width <> tex->width) or _
-                               (this.texture->height <> tex->height) Then
-                           
+                        ElseIf (tex->width <> this.texture->width) or (tex->height <> this.texture->height) Then
                                 If tex <> 0 Then
-                                        ImageDestroy( tex ):tex = 0
+                                        ImageDestroy(tex):tex = 0
                                 Endif
-                                
-                                consolePrint("Resize tex")
                                 
                                 tex = ImageCreate( this.texture->width, this.texture->height )
                         Endif
                         
-                        ' memcpy seems to be faster
-                        'Put tex, (0,0), this.texture, PSET
-                        memcpy( tex, this.texture, sizeOf(fb.Image)+ tex->pitch * tex->height + tex->bpp * tex->width )
+                        ' memcpy seems to be faster, but is causing segfaults
+                        Put tex, (0,0), this.texture, PSET
+                        'memcpy( tex, this.texture, sizeOf(fb.Image)+ tex->pitch * tex->height + tex->bpp * tex->width )
                         
                         ' Set the texture to the base texture
                         this.setTexture(bgID)
