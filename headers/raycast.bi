@@ -417,8 +417,10 @@ Function raycaster.draw() As errorCode
                                 this.depthBuffer(x,(renderH/2)-y)   = distance
 				
 				' Put it on the buffer
-				Line screenBuffer, (x*renderScale,(y + (renderH/2))*renderScale)-Step(this.renderScale, this.renderScale), _
-					shadePixel(sample, shade, this.fogColor), BF
+                                If (sample and rgb(255,255,255)) <> rgb(255,0,255) Then
+                                        Line screenBuffer, (x*renderScale,(y + (renderH/2))*renderScale)-Step(this.renderScale, this.renderScale), _
+                                                shadePixel(sample, shade, this.fogColor), BF
+                                Endif
                                 
                                 ' Sample and draw the ceiling too
                                 If (mapX < this.map.mapW) and (mapY < this.map.mapH) and (mapX > 0) and (mapY > 0) Then
@@ -427,8 +429,10 @@ Function raycaster.draw() As errorCode
                                                         sample = this.atlas.sampleTexture( sampleX+0.5, sampleY+0.5, this.map.segment(mapX,mapY).ceilingID, interpolation )
                                                 Endif
                                                 
-                                                Line screenBuffer, (x*renderScale,((renderH/2)-y)*renderScale)-Step(this.renderScale, this.renderScale), _
-                                                        shadePixel(sample, shade, this.fogColor), BF
+                                                If (sample and rgb(255,255,255)) <> rgb(255,0,255) Then
+                                                        Line screenBuffer, (x*renderScale,((renderH/2)-y)*renderScale)-Step(this.renderScale, this.renderScale), _
+                                                                shadePixel(sample, shade, this.fogColor), BF
+                                                Endif
                                         Else
                                                 this.depthBuffer(x,(renderH/2)-y)   = drawDistance
                                         Endif
@@ -551,7 +555,7 @@ Function raycaster.draw() As errorCode
 				outputPixel = this.atlas.sampleTexture( sampleX, sampleY, mapSegment->textureID, interpolation )
 				
 				' Shade it if its not "transparent"
-                                If outputPixel <> rgb(255,0,255) Then
+                                If (outputPixel and rgb(255,255,255)) <> rgb(255,0,255) Then
                                         ' Applying shade if it is transparent makes it not transparent
                                         OutputPixel = shadePixel( outputPixel, shade, this.fogColor )
                                         
