@@ -70,6 +70,11 @@ type textureAtlas
         
         Declare Function sampleTexture( ByVal As Double, ByVal As Double, ByVal As Integer, ByVal As Integer = 0 ) As UInteger
 	
+        Declare Function scalePut( ByVal As Any Ptr = 0, _
+                                   ByVal As Integer, ByVal As Integer, _
+                                   ByVal As Integer, ByVal As Integer, _
+                                   ByVal As Integer ) As errorCode
+        
 	Declare Function addLargeTexture( ByVal As Integer, ByVal As Integer, ByVal As Integer, ByVal As Integer ) As errorCode
 	Declare Function addAnimatedTexture( ByVal As Integer, ByVal As Integer ) As errorCode
         Declare Function addCompositeTexture( ByVal As Integer, ByVal As Integer ) As errorCode
@@ -512,6 +517,27 @@ Function textureAtlas.sampleTexture( ByVal sX As Double, ByVal sY As Double, ByV
         Dim As UInteger Ptr ret = ( cast(Any Ptr, this.atlas) + sizeOf(fb.Image) + this.atlas->pitch * sampleY + this.atlas->bpp * sampleX )
         
         Return *ret
+End Function
+
+' Draw a texture in an unusual shape
+Function textureAtlas.scalePut( ByVal dest As Any Ptr = 0, _
+                   ByVal x As Integer, ByVal y As Integer, _
+                   ByVal w As Integer, ByVal h As Integer, _
+                   ByVal tID As Integer ) As errorCode
+                   
+        For a As Integer = 0 to h
+                For b As Integer = 0 to w
+                        Dim As UInteger sample
+                        
+                        sample = this.sampleTexture( (b/w), (a/h), tID )
+                        
+                        If ( sample and rgb(255,255,255) ) <> rgb(255,0,255) Then
+                                PSet dest, ( x + b, y + a ), sample
+                        Endif
+                Next
+        Next
+        
+        Return E_NO_ERROR
 End Function
 
 Function textureAtlas.addLargeTexture( ByVal x As Integer, ByVal y As Integer, ByVal w As Integer, ByVal h As Integer ) As errorCode
