@@ -49,9 +49,6 @@ Else
 Endif
 
 test.getMapSettings()
-test.floorFix = false
-
-'test.autoPerformance = true
 
 Do
 	ScreenLock

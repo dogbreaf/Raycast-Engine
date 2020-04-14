@@ -236,8 +236,6 @@ type raycaster
 	
 	drawDistance	As Double = 20
 	
-	drawFloor	As Boolean = true
-	
 	fogColor	As ULong
         
         interpolation   As sampleInterpolation = SI_NEAREST
@@ -245,9 +243,6 @@ type raycaster
         ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
         ' Optional bugfixes
         '
-        ' temporary fix for flickering floor
-        ' Has a big performance penalty
-        floorFix                As Boolean = true
         
         ' Wether to draw the floor through transparent walls, floor rendered
         ' through the transparent portions is not shaded correctly.
@@ -256,9 +251,6 @@ type raycaster
         ' Wether to correct the fisheye effect. This makes the floor stick to
         ' the walls better
         fisheyeCorrection       As Boolean = true
-        
-        ' Auto-enable/disable fixes depending on how bad the performance is
-        autoPerformance         As Boolean = false
 	
         
         ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -337,6 +329,7 @@ Function raycaster.draw() As errorCode
 		Return E_NO_BUFFER
 	Endif
         
+        ' Reset the depth buffer
         For y As Integer = 0 to renderH
                 For x As Integer = 0 to renderW
                         depthBuffer(x,y) = drawDistance
@@ -348,99 +341,94 @@ Function raycaster.draw() As errorCode
 	
 	' Render the floor
 	' Unlike the raycasting code I haven't fully wrapped my head around this yet
-	If this.drawFloor Then		
-		' Calculate the fustrum
-		Dim As Double FarX1 = PlayerX + sin( PlayerA - (FOV/2) ) * farPlane
-		Dim As Double FarY1 = PlayerY + cos( PlayerA - (FOV/2) ) * farPlane
-		
-		Dim As Double FarX2 = PlayerX + sin( PlayerA + (FOV/2) ) * farPlane
-		Dim As Double FarY2 = PlayerY + cos( PlayerA + (FOV/2) ) * farPlane
-		
-		Dim As Double NearX1 = PlayerX + sin( PlayerA - (FOV/2) ) * nearPlane
-		Dim As Double NearY1 = PlayerY + cos( PlayerA - (FOV/2) ) * nearPlane
-		
-		Dim As Double NearX2 = PlayerX + sin( PlayerA + (FOV/2) ) * nearPlane
-		Dim As Double NearY2 = PlayerY + cos( PlayerA + (FOV/2) ) * nearPlane
-		
-		' Render the texture projection
-		For y As Integer = 0 to renderH/2
-			Dim As Double sampleDepth = y/(renderH/2)
-			
-			Dim As Double startX = (farX1-nearX1) / SampleDepth + nearX1
-			Dim As Double startY = (farY1-nearY1) / SampleDepth + nearY1
-			
-			Dim As Double endX = (farX2-nearX2) / SampleDepth + nearX2
-			Dim As Double endY = (farY2-nearY2) / SampleDepth + nearY2
-			
-			For x As Integer = 0 to renderW
-				Dim As Double sampleWidth = x/renderW
-				
-				Dim As Double sampleX = (endX - startX) * sampleWidth + startX
-				Dim As Double sampleY = (endY - startY) * sampleWidth + startY
-				
-				Dim As Integer mapX = CInt(sampleX)
-				Dim As Integer mapY = CInt(sampleY)
-                                
-                                ' Fix the flickering floor textures
-                                If floorFix Then
-                                        this.atlas.previousID = -1
-                                Endif
-				
-                                ' Make sure the map coords are in-bounds
-                                If (0 > mapX > this.map.mapW) or (0 > mapY > this.map.mapH) Then
-                                        logError(E_BAD_PARAMETERS, __errorTrace, true)
-                                Endif
-  
-                                ' Do the sampling
-				Dim As Double distance = sqr( (( playerX-sampleX ) ^ 2) + (( playerY-sampleY ) ^ 2) )
-                                Dim As UInteger sample = fogColor
-                                Dim As UInteger shade = 255-(255*(distance/drawDistance))
-                                
-                                ' Grab the current floor texture
-				If (mapX < this.map.mapW) and (mapY < this.map.mapH) and (mapX > 0) and (mapY > 0) Then
-					 If distance < drawDistance Then
-                                                ' Sample the texture
-                                                 sample = this.atlas.sampleTexture( sampleX+0.5, sampleY+0.5, this.map.segment(mapX,mapY).textureID, interpolation )
-                                        Endif
-				Endif
-
-				If sampleDepth > drawDistance Then
-					shade = 0
-				Endif
-                                
-                                ' Update the depth buffer
-                                If (UBound(this.depthBuffer, 1) < x) or (UBound(this.depthBuffer, 2) < y) Then
-                                        Return E_UNKNOWN
-                                Endif
-                                
-                                this.depthBuffer(x,(renderH/2)+y)   = distance
-                                this.depthBuffer(x,(renderH/2)-y)   = distance
-				
-				' Put it on the buffer
-                                If (sample and rgb(255,255,255)) <> rgb(255,0,255) Then
-                                        Line screenBuffer, (x*renderScale,(y + (renderH/2))*renderScale)-Step(this.renderScale, this.renderScale), _
-                                                shadePixel(sample, shade, this.fogColor), BF
-                                Endif
-                                
-                                ' Sample and draw the ceiling too
-                                If (mapX < this.map.mapW) and (mapY < this.map.mapH) and (mapX > 0) and (mapY > 0) Then
-                                        If this.map.segment(mapX,mapY).flags and SF_CEILING Then
-                                                                                                If this.map.segment(mapX, mapY).ceilingID <> this.map.segment(mapX, mapY).textureID Then
-                                                        sample = this.atlas.sampleTexture( sampleX+0.5, sampleY+0.5, this.map.segment(mapX,mapY).ceilingID, interpolation )
-                                                Endif
-                                                
-                                                If (sample and rgb(255,255,255)) <> rgb(255,0,255) Then
-                                                        Line screenBuffer, (x*renderScale,((renderH/2)-y)*renderScale)-Step(this.renderScale, this.renderScale), _
-                                                                shadePixel(sample, shade, this.fogColor), BF
-                                                Endif
-                                        Else
-                                                this.depthBuffer(x,(renderH/2)-y)   = drawDistance
-                                        Endif
-                                Endif
-			Next
-		Next
-	Endif
         
+        ' Calculate the fustrum
+        Dim As Double FarX1 = PlayerX + sin( PlayerA - (FOV/2) ) * farPlane
+        Dim As Double FarY1 = PlayerY + cos( PlayerA - (FOV/2) ) * farPlane
+        
+        Dim As Double FarX2 = PlayerX + sin( PlayerA + (FOV/2) ) * farPlane
+        Dim As Double FarY2 = PlayerY + cos( PlayerA + (FOV/2) ) * farPlane
+        
+        Dim As Double NearX1 = PlayerX + sin( PlayerA - (FOV/2) ) * nearPlane
+        Dim As Double NearY1 = PlayerY + cos( PlayerA - (FOV/2) ) * nearPlane
+        
+        Dim As Double NearX2 = PlayerX + sin( PlayerA + (FOV/2) ) * nearPlane
+        Dim As Double NearY2 = PlayerY + cos( PlayerA + (FOV/2) ) * nearPlane
+        
+        ' Render the texture projection
+        For y As Integer = 0 to renderH/2
+                Dim As Double sampleDepth = y/(renderH/2)
+                
+                Dim As Double startX = (farX1-nearX1) / SampleDepth + nearX1
+                Dim As Double startY = (farY1-nearY1) / SampleDepth + nearY1
+                
+                Dim As Double endX = (farX2-nearX2) / SampleDepth + nearX2
+                Dim As Double endY = (farY2-nearY2) / SampleDepth + nearY2
+                
+                For x As Integer = 0 to renderW
+                        Dim As Double sampleWidth = x/renderW
+                        
+                        Dim As Double sampleX = (endX - startX) * sampleWidth + startX
+                        Dim As Double sampleY = (endY - startY) * sampleWidth + startY
+                        
+                        Dim As Integer mapX = CInt(sampleX)
+                        Dim As Integer mapY = CInt(sampleY)
+                        
+                        ' Make sure the map coords are in-bounds
+                        If (0 > mapX > this.map.mapW) or (0 > mapY > this.map.mapH) Then
+                                logError(E_BAD_PARAMETERS, __errorTrace, true)
+                        Endif
+
+                        ' Do the sampling
+                        Dim As Double distance = sqr( (( playerX-sampleX ) ^ 2) + (( playerY-sampleY ) ^ 2) )
+                        Dim As UInteger sample = fogColor
+                        Dim As UInteger shade = 255-(255*(distance/drawDistance))
+                        
+                        ' Grab the current floor texture
+                        If (mapX < this.map.mapW) and (mapY < this.map.mapH) and (mapX > 0) and (mapY > 0) Then
+                                 If distance < drawDistance Then
+                                        ' Sample the texture
+                                         sample = this.atlas.sampleTexture( sampleX+0.5, sampleY+0.5, this.map.segment(mapX,mapY).textureID, interpolation )
+                                Endif
+                        Endif
+
+                        If sampleDepth > drawDistance Then
+                                shade = 0
+                        Endif
+                        
+                        ' Update the depth buffer
+                        If (UBound(this.depthBuffer, 1) < x) or (UBound(this.depthBuffer, 2) < y) Then
+                                Return E_UNKNOWN
+                        Endif
+                        
+                        this.depthBuffer(x,(renderH/2)+y)   = distance
+                        this.depthBuffer(x,(renderH/2)-y)   = distance
+                        
+                        ' Put it on the buffer
+                        If (sample and rgb(255,255,255)) <> rgb(255,0,255) Then
+                                Line screenBuffer, (x*renderScale,(y + (renderH/2))*renderScale)-Step(this.renderScale, this.renderScale), _
+                                        shadePixel(sample, shade, this.fogColor), BF
+                        Endif
+                        
+                        ' Sample and draw the ceiling too
+                        If (mapX < this.map.mapW) and (mapY < this.map.mapH) and (mapX > 0) and (mapY > 0) Then
+                                If this.map.segment(mapX,mapY).flags and SF_CEILING Then
+                                        ' Don't re-sample the same texture
+                                        If this.map.segment(mapX, mapY).ceilingID <> this.map.segment(mapX, mapY).textureID Then
+                                                sample = this.atlas.sampleTexture( sampleX+0.5, sampleY+0.5, this.map.segment(mapX,mapY).ceilingID, interpolation )
+                                        Endif
+                                        
+                                        If (sample and rgb(255,255,255)) <> rgb(255,0,255) Then
+                                                Line screenBuffer, (x*renderScale,((renderH/2)-y)*renderScale)-Step(this.renderScale, this.renderScale), _
+                                                        shadePixel(sample, shade, this.fogColor), BF
+                                        Endif
+                                Else
+                                        this.depthBuffer(x,(renderH/2)-y)   = drawDistance
+                                Endif
+                        Endif
+                Next
+        Next
+                
 	' Cast rays and render to the buffer
 	For x As Double = 0 to this.renderW
 		' Variables we need
@@ -510,7 +498,7 @@ Function raycaster.draw() As errorCode
 		' Draw the column of the buffer that this ray corresponds to
 		Dim As uByte	shade
 		Dim As uInteger	wallColor
-		Dim As uInteger	outputPixel
+		Dim As uInteger	outputPixel = rgb(255,0,255)
 		
 		' Calculate distance to ceiling and floor in screen space
                 Dim As Integer Ceiling = (this.renderH/2)-(this.renderH/distanceToWall)
@@ -523,28 +511,16 @@ Function raycaster.draw() As errorCode
                 	Endif
                 	
                 	' Draw the appropriate thing
-			If y < Ceiling Then
-				' this is drawn by the floor drawing routine now
-				outputPixel = rgb(255,0,255)
-				
-			ElseIf y > Floor Then
-                                shade = 255-(255*(this.renderH/y))
-                                
-				' The floor may have already been drawn with a texture
-				If drawFloor then
-					outputPixel = rgb(255,0,255)
-				Else
-                                        ' Shade the floor according to depth
-					outputPixel = rgb( shade, shade, shade )
-				Endif
-				
-			ElseIf distanceToWall >= drawDistance Then
+			If distanceToWall >= drawDistance Then
 				outputPixel = this.fogColor
 				
 				' Update the depth buffer
 				depthBuffer(x,y) = this.drawDistance
+                        
+                        ElseIf ( y > floor ) Then
+                                outputPixel = rgb(255,0,255)
 				
-			Else				
+			ElseIf ( y > Ceiling ) and ( y < floor ) Then
 				' This is the wall, calculate the shading depending on distance to the wall
 				shade = 255-(255*(distanceToWall/drawDistance))
 				
@@ -573,11 +549,12 @@ Function raycaster.draw() As errorCode
                                         If drawThroughWalls = false Then
                                                 outputPixel = fogColor
                                         Endif
+                                        
                                 Endif
 			Endif
 			
 			' Draw to the buffer
-			If outputPixel <> rgb(255,0,255) Then
+			If ( outputPixel and rgb(255,255,255) ) <> rgb(255,0,255) Then
 				Line this.screenBuffer, (x*this.renderScale,y*this.renderScale)-STEP(this.renderScale, this.renderScale), outputPixel, BF
 			Endif
                 Next
@@ -596,9 +573,6 @@ Function raycaster.draw() As errorCode
 			Dim As Double distanceFromPlayer = sqr( (vecX^2) + (vecY^2) )
 			
 			' Calculate if the object is within the FOV
-			Dim As Double eyeX = sin(this.playerA)
-			Dim As Double eyeY = cos(this.playerA)
-			
 			Dim As Double objectAngle = directionTo( playerX, playerY, workingObject->posX, workingObject->posY )
 			
 			' Clamp the player angle to make the maths easier
@@ -610,13 +584,13 @@ Function raycaster.draw() As errorCode
 			Endif
 			
 			' The angle we want is the difference between where the player is facing and the angle between the player and the object
-			' i.e. it will be 0 when the player is looking directly at the object and move to +/- 2pi as they turn to either side
+			' i.e. it will be 0 when the player is looking directly at the object and move to +/- pi as they turn to either side
 			objectAngle -= playerA
 			
 			' Draw the object if it is visible
 			If ( distanceFromPlayer > 0.1 ) _
 			   and ( distanceFromPlayer < this.drawDistance ) _
-			   and abs(objectAngle) < (this.FOV/2) Then
+			   and abs(objectAngle) < (this.FOV/2) + (_pi/8) Then
 			
 				' Calculate the position of the object in screen space
 				Dim As Double objectCeiling = ( renderH/2 ) - renderH / distanceFromPlayer
@@ -626,29 +600,27 @@ Function raycaster.draw() As errorCode
 				Dim As Double objectWidth = (objectFloor-objectCeiling)*workingObject->width
 				
 				' This might not be 100% perfect, dunno
-				Dim As Double objectCenter =  0.5 + ((this.FOV/2) + objectAngle/this.FOV)*this.renderW
+				Dim As Double objectCenter =  ((this.FOV/2) + objectAngle/this.FOV)*this.renderW
 				
 				For y As Integer = 0 to objectHeight
 					For x As Integer = 0 to objectWidth
 						' Sample the texture
 						Dim As Double sampleX = x / objectWidth
 						Dim As Double sampleY = y / objectHeight
-						
-						Dim As Integer objectColumn = objectCenter + x - (objectWidth/2)
-						Dim As Integer pX = objectColumn
+
+						Dim As Integer pX = objectCenter + x - (objectWidth/2)
 						Dim As Integer pY = objectCeiling + y
 						
-						Dim As tPixel sample
-						sample.value = this.atlas.sampleTexture( sampleX, sampleY, workingObject->textureID, interpolation )
+						Dim As UInteger sample = this.atlas.sampleTexture( sampleX, sampleY, workingObject->textureID, interpolation )
 						
 						' If it is not transparent and not off screen
-						If (sample.r <> 255) and (sample.b <> 255) and (sample.g <> 0) and _
+						If ( sample and rgb(255,255,255) ) = rgb(255,0,255) and _
 							(pX > 0) and (pY > 0) and (pX < renderW) and (pY < renderH) Then
 							
 							' Shade the object depending on distance
 							Dim As UInteger shade = 255 - (255 * ( distanceFromPlayer/this.drawDistance ))
 							
-							sample.value = shadePixel( sample.value, shade, this.fogColor )
+							sample = shadePixel( sample, shade, this.fogColor )
 							
 							' Check array bounds
 							If (UBound(this.depthBuffer, 1) < pX) or (UBound(this.depthBuffer, 2) < pY) Then
@@ -661,7 +633,7 @@ Function raycaster.draw() As errorCode
 								this.depthBuffer(pX, pY) = distanceFromPlayer
 							
 								Line this.screenBuffer, (pX*renderScale, pY*this.renderScale)-step _
-									(this.renderScale, this.renderScale), sample.value, BF
+									(this.renderScale, this.renderScale), sample, BF
 							Endif
 						Endif
 					Next
@@ -679,45 +651,6 @@ Function raycaster.update() As errorCode
 	' Calculate frame delta and framerate
 	this.frameTime = timer-this.frameTime
         this.frameRate = 1/this.frameTime
-        
-        ' Auto performance control
-        If autoPerformance Then
-                Dim As Boolean adjusted
-                
-                If frameRate < 12 and floorFix = true Then
-                        ' Optimize for performance
-                        floorFix = false
-                        drawThroughWalls = false
-                        
-                        adjusted = true
-                Endif
-                
-                If frameRate < 8 and drawDistance > 4 Then
-                        ' Decrease draw distance
-                        drawDistance -= 0.1
-                        
-                        adjusted = true
-                Endif
-                
-                If frameRate > 12 and drawDistance < 8 Then
-                        ' Increase draw distance
-                        drawDistance += 0.1
-                        
-                        adjusted = true
-                Endif
-                
-                If frameRate > 16 and floorFix = false Then
-                        ' Optimze for best visuals
-                        floorFix = true
-                        drawThroughWalls = true
-                        
-                        adjusted = true
-                Endif
-                
-                If adjusted Then
-                        'consolePrint("Adjusting performance...")
-                Endif
-        Endif
         
         ' Store the player's position
         Dim As Double oldPlayerX = PlayerX
