@@ -507,6 +507,123 @@ Function uiScrollbar.draw( ByVal contextPtr As Any Ptr ) As Integer
         Return 0
 End Function
 
+' List box
+Type uiListbox Extends uiElement
+        Private:
+        list (Any)      As String
+        
+        scrollbar       As uiScrollbar Ptr
+        
+        Public:
+        selectedID      As Integer
+        
+        Declare Constructor ( ByVal As Integer, ByVal As Integer, _
+                              ByVal As Integer, ByVal As Integer )
+                              
+        Declare Function update( ByVal As Any Ptr ) As Integer Override
+        Declare Function draw( ByVal As Any Ptr ) As Integer Override
+        
+        Declare Function add( ByVal As String ) As Integer
+        Declare Function clear() As Integer
+End Type
+
+Constructor uiListbox ( ByVal x As Integer, ByVal y As Integer, _
+                        ByVal w As Integer, ByVal h As Integer )
+                       
+        base( x, y, w, h )
+        
+        scrollbar = new uiScrollbar( x + w + 10, y, 15, h - 15 )
+End Constructor
+
+Function uiListbox.update( ByVal contextPtr As Any Ptr ) As Integer
+        Dim As uiContext Ptr context = Cast( uiContext Ptr, contextPtr )
+        
+        scrollbar->update(contextPtr)
+        
+        If __inRect( context->mouseX, context->mouseY, base.x, _
+                     base.y, base.x + base.w, base.y + base.h ) Then
+
+                If context->mouseBtn1 Then
+                        Dim As Integer listLen = UBound( this.list )
+                        Dim As Integer listScr = listLen * scrollbar->value
+                        Dim As Integer dispLen = (this.h/10)-2
+                        Dim As Integer sx = context->mouseY-this.y
+                        
+                        this.selectedID = ( dispLen*(sx/this.h) ) + listScr
+                Endif
+        Endif
+        
+        this.selectedID -= context->mouseWheel
+        
+        If this.selectedID > UBound( this.list ) Then
+                this.selectedID = UBound( this.list )
+        ElseIf this.selectedID < 0 Then
+                this.selectedID = 0
+        Endif
+        
+        Return 0
+End Function
+
+Function uiListbox.draw( ByVal contextPtr As Any Ptr ) As Integer
+        Dim As uiContext Ptr context = Cast( uiContext Ptr, contextPtr )
+        
+        __drawRect( context->buffer, this.x, this.y, this.w, this.h, RT_ENABLED_BOX )
+        
+        scrollbar->draw(contextPtr)
+        
+        ''''''''''''''''''
+        Dim As Integer listLen = UBound( this.list )
+        Dim As Integer dispLen = (this.h/10)-2
+        Dim As Integer listScr = listLen * scrollbar->value
+        
+        For i As Integer = 0 to dispLen
+                
+                Dim As UInteger fg = rgb(255,255,255)
+                Dim As UInteger bg = rgb(0,0,0)
+                
+                If i+listScr = this.selectedID Then
+                        fg = rgb(0,0,0)
+                        bg = rgb(255,255,255)
+                Endif
+                
+                Dim As Integer xp = this.x + 2
+                Dim As Integer yp = this.y + 2 + ( i * 10 )
+                
+                If i+listScr < listLen Then
+                        Line context->buffer, (xp, yp)-step(this.w-3,9), bg, BF
+                        ..Draw String context->buffer, ( xp , yp ), _
+                                this.list(i+listScr), fg
+                Endif
+                
+        Next
+        
+        Return 0
+End Function
+
+Function uiListbox.add( ByVal item As String ) As Integer
+        Dim As Integer count = UBound( this.list )+1
+        
+        ReDim Preserve this.list(count) As String
+        
+        If UBound(this.list) <> count Then
+                Return -1
+        Endif
+        
+        this.list(count) = item
+        
+        Return count
+End Function
+
+Function uiListbox.clear() As Integer
+        ReDim this.list(-1) As String
+        
+        If UBound(this.list) <> -1 Then
+                Return -1
+        Endif
+        
+        Return 0
+End Function
+
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 ' Override these functions in custom UI elements
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''

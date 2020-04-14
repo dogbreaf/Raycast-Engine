@@ -19,13 +19,21 @@
 ' Initialisation
 ScreenRes __XRES,__YRES,32
 
-Dim As uiContext c = uiContext(10,10,512,256)
+Dim As uiContext c = uiContext(10,10,800,600)
+
+Dim As uiListbox t = uiListbox(350,20,256,128)
+
+For i As Integer = 0 to 22
+        t.add("Item " & i)
+Next
+
+c.add( @t )
 
 c.add( new uiButton(110,20,100,15,"button") )
 
 c.add( new uiCheckbox(110,40,15,15,"Checkbox") )
 
-c.add( new uiTextInput(110,60,250,15) )
+c.add( new uiTextInput(110,60,200,15) )
 
 c.add( new uiScrollbar(10,10,15,200) )
 c.add( new uiScrollbar(40,210,200,15) )
