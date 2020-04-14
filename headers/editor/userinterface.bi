@@ -461,6 +461,8 @@ Function uiScrollbar.update( ByVal contextPtr As Any Ptr ) As Integer
                      
                 this.hover = true
                 
+                this.value -= (context->mouseWheel/this.h)*4
+                
                 If context->mouseBtn1 Then
                         this.click = true
                 Else
@@ -486,6 +488,12 @@ Function uiScrollbar.update( ByVal contextPtr As Any Ptr ) As Integer
                         Endif
                         
                 Endif
+        Endif
+        
+        If this.value > 1 Then
+                this.value = 1
+        ElseIf this.value < 0 Then
+                this.value = 0
         Endif
         
         Return 0
@@ -551,9 +559,9 @@ Function uiListbox.update( ByVal contextPtr As Any Ptr ) As Integer
                         
                         this.selectedID = ( dispLen*(sx/this.h) ) + listScr
                 Endif
+                
+                this.selectedID -= context->mouseWheel
         Endif
-        
-        this.selectedID -= context->mouseWheel
         
         If this.selectedID > UBound( this.list ) Then
                 this.selectedID = UBound( this.list )
@@ -586,13 +594,13 @@ Function uiListbox.draw( ByVal contextPtr As Any Ptr ) As Integer
                         bg = rgb(255,255,255)
                 Endif
                 
-                Dim As Integer xp = this.x + 2
-                Dim As Integer yp = this.y + 2 + ( i * 10 )
+                Dim As Integer xp = this.x + 1
+                Dim As Integer yp = this.y + 1 + ( i * 10 )
                 
                 If i+listScr < listLen Then
-                        Line context->buffer, (xp, yp)-step(this.w-3,9), bg, BF
-                        ..Draw String context->buffer, ( xp , yp ), _
-                                this.list(i+listScr), fg
+                        Line context->buffer, (xp, yp)-step(this.w-2,9), bg, BF
+                        ..Draw String context->buffer, ( xp + 2 , yp + 2 ), _
+                                Left( this.list(i+listScr), (this.w/8)-1), fg
                 Endif
                 
         Next
