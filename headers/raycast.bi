@@ -214,8 +214,8 @@ End Function
 ' Do the raycasting
 type raycaster
 	' data from files
-	map		As gameMap = gameMap(10,10)
-	atlas		As textureAtlas
+	map		As gameMap Ptr
+	atlas		As textureAtlas Ptr
 	
 	' configuration
 	renderW 	As Integer
@@ -307,16 +307,16 @@ Destructor raycaster ()
 End Destructor
 
 Function raycaster.getMapSettings() As errorCode
-        this.fogColor = this.map.fogColor
-        this.drawDistance = this.map.fogDistance
+        this.fogColor = this.map->fogColor
+        this.drawDistance = this.map->fogDistance
         
         If this.drawDistance < 4 Then
                 this.drawDistance = 4
         Endif
         
-        this.playerX = this.map.playerX
-        this.playerY = this.map.playerY
-        this.playerA = this.map.playerA
+        this.playerX = this.map->playerX
+        this.playerY = this.map->playerY
+        this.playerA = this.map->playerA
         
         Return E_NO_ERROR
 End Function
@@ -375,7 +375,7 @@ Function raycaster.draw() As errorCode
                         Dim As Integer mapY = CInt(sampleY)
                         
                         ' Make sure the map coords are in-bounds
-                        If (0 > mapX > this.map.mapW) or (0 > mapY > this.map.mapH) Then
+                        If (0 > mapX > this.map->mapW) or (0 > mapY > this.map->mapH) Then
                                 logError(E_BAD_PARAMETERS, __errorTrace, true)
                         Endif
 
@@ -385,10 +385,10 @@ Function raycaster.draw() As errorCode
                         Dim As UInteger shade = 255-(255*(distance/drawDistance))
                         
                         ' Grab the current floor texture
-                        If (mapX < this.map.mapW) and (mapY < this.map.mapH) and (mapX > 0) and (mapY > 0) Then
+                        If (mapX < this.map->mapW) and (mapY < this.map->mapH) and (mapX > 0) and (mapY > 0) Then
                                  If distance < drawDistance Then
                                         ' Sample the texture
-                                         sample = this.atlas.sampleTexture( sampleX+0.5, sampleY+0.5, this.map.segment(mapX,mapY).textureID, interpolation )
+                                         sample = this.atlas->sampleTexture( sampleX+0.5, sampleY+0.5, this.map->segment(mapX,mapY).textureID, interpolation )
                                 Endif
                         Endif
 
@@ -411,11 +411,11 @@ Function raycaster.draw() As errorCode
                         Endif
                         
                         ' Sample and draw the ceiling too
-                        If (mapX < this.map.mapW) and (mapY < this.map.mapH) and (mapX > 0) and (mapY > 0) Then
-                                If this.map.segment(mapX,mapY).flags and SF_CEILING Then
+                        If (mapX < this.map->mapW) and (mapY < this.map->mapH) and (mapX > 0) and (mapY > 0) Then
+                                If this.map->segment(mapX,mapY).flags and SF_CEILING Then
                                         ' Don't re-sample the same texture
-                                        If this.map.segment(mapX, mapY).ceilingID <> this.map.segment(mapX, mapY).textureID Then
-                                                sample = this.atlas.sampleTexture( sampleX+0.5, sampleY+0.5, this.map.segment(mapX,mapY).ceilingID, interpolation )
+                                        If this.map->segment(mapX, mapY).ceilingID <> this.map->segment(mapX, mapY).textureID Then
+                                                sample = this.atlas->sampleTexture( sampleX+0.5, sampleY+0.5, this.map->segment(mapX,mapY).ceilingID, interpolation )
                                         Endif
                                         
                                         If (sample and rgb(255,255,255)) <> rgb(255,0,255) Then
@@ -457,13 +457,13 @@ Function raycaster.draw() As errorCode
                         Dim As Integer testY = this.PlayerY + EyeY * distanceToWall
                         
                         ' Check if the ray is in bounds
-                        If ( testX < 0 ) or ( testX > this.map.mapW ) or _
-                           ( testY < 0 ) or ( testY > this.map.mapH ) Then
+                        If ( testX < 0 ) or ( testX > this.map->mapW ) or _
+                           ( testY < 0 ) or ( testY > this.map->mapH ) Then
                            
                         	hitWall = true
                         	distanceToWall = this.drawDistance
                         Else
-                        	mapSegment = @this.map.segment( testX, testY)
+                        	mapSegment = @this.map->segment( testX, testY)
                         	
                         	If mapSegment->solid Then
                         		' This is a solid wall
@@ -528,7 +528,7 @@ Function raycaster.draw() As errorCode
 				SampleY = ((y-ceiling)/(this.renderH-(ceiling*2)))
 
 				' Sample the texture
-				outputPixel = this.atlas.sampleTexture( sampleX, sampleY, mapSegment->textureID, interpolation )
+				outputPixel = this.atlas->sampleTexture( sampleX, sampleY, mapSegment->textureID, interpolation )
 				
 				' Shade it if its not "transparent"
                                 If (outputPixel and rgb(255,255,255)) <> rgb(255,0,255) Then
@@ -561,10 +561,10 @@ Function raycaster.draw() As errorCode
 	Next
 	
 	' Render any objects
-	If UBound(this.map.mObject) > -1 Then
-		For i As Integer = 0 to UBound(this.map.mObject)
+	If UBound(this.map->mObject) > -1 Then
+		For i As Integer = 0 to UBound(this.map->mObject)
 			' Create a handy pointer to the object
-			Dim As mapObject Ptr workingObject = @this.map.mObject(i)
+			Dim As mapObject Ptr workingObject = @this.map->mObject(i)
 			
 			' Calculate the distance to the object
 			Dim As Double vecX = workingObject->posX - this.playerX
@@ -611,7 +611,7 @@ Function raycaster.draw() As errorCode
 						Dim As Integer pX = objectCenter + x - (objectWidth/2)
 						Dim As Integer pY = objectCeiling + y
 						
-						Dim As UInteger sample = this.atlas.sampleTexture( sampleX, sampleY, workingObject->textureID, interpolation )
+						Dim As UInteger sample = this.atlas->sampleTexture( sampleX, sampleY, workingObject->textureID, interpolation )
 						
 						' If it is not transparent and not off screen
 						If ( sample and rgb(255,255,255) ) = rgb(255,0,255) and _
@@ -685,15 +685,15 @@ Function raycaster.update() As errorCode
         Endif
         
         ' If the player is outside the map then reset the position to before they moved
-        If (this.playerX < 0) or (this.playerX > this.map.mapW) or _
-           (this.playerY < 0) or (this.playerY > this.map.mapH) Then
+        If (this.playerX < 0) or (this.playerX > this.map->mapW) or _
+           (this.playerY < 0) or (this.playerY > this.map->mapH) Then
            
         	this.playerX = oldPlayerX
         	this.playerY = oldPlayerY
         Endif
         
         ' If the player is colliding with a wall then reset the position to before they moved
-        If this.map.segment( CInt(this.playerX), CInt(this.playerY) ).solid Then
+        If this.map->segment( CInt(this.playerX), CInt(this.playerY) ).solid Then
         	this.playerX = oldPlayerX
         	this.playerY = oldPlayerY
         Endif

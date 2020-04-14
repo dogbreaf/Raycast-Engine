@@ -8,25 +8,8 @@ Function previewMap( ByVal map As gameMap Ptr, ByVal atlas As textureAtlas Ptr, 
         ' Create a raycaster to preview the map
         Dim As raycaster        preview = raycaster(__XRES/3,__YRES/3,1)
         
-        preview.map = *map
-        
-        If preview.atlas.atlas <> 0 Then
-                ImageDestroy(preview.atlas.atlas)
-                preview.atlas.atlas = 0
-        Endif
-        preview.atlas.atlas = ImageCreate( atlas->atlas->width, atlas->atlas->height )
-        
-        Put preview.atlas.atlas, (0,0), atlas->atlas, PSET
-        
-        preview.atlas.textureSize = atlas->textureSize
-        
-        If UBound(atlas->mTexture) > -1 Then
-                ReDim preview.atlas.mTexture(UBound(atlas->mTexture)) As metaTexture
-                
-                For i As Integer = 0 to UBound(atlas->mTexture)
-                        preview.atlas.mTexture(i) = atlas->mTexture(i)
-                Next
-        Endif
+        preview.map = map
+        preview.atlas = atlas
         
         ''''''''''''''''''''''''''''''''''''''''''''''''''''''
         
