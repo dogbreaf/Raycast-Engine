@@ -1,8 +1,33 @@
 ' A simple UI toolkit
 '
 
+' Available elements
+'
+' uiButton
+'       A regular button.
+'
+' uiTextInput
+'       A single line text input
+'
+' uiCheckbox
+'       A toggleable checkbox
+'
+' uiScrollbar
+'       A scrollbar
+'
+' uiListbox
+'       A box with a list of items
+'
+
+#ifdef __FB_LINUX__
+#define __PATH_SEPERATOR__ "/"
+#else
+#define __PATH_SEPERATOR__ "\"
+#endif
+
 ' Core utility functions
 Enum uiRectType
+        RT_BLOCK
         RT_ENABLED_BOX
         RT_DISABLED_BOX
         RT_SELECTED_BOX
@@ -20,6 +45,8 @@ Declare Function __drawRect( ByVal As Any Ptr, _
                              ByVal As Integer, _
                              ByVal As Integer, _
                              ByVal As uiRectType ) As Integer
+                             
+Declare Function __shadeScreen() As Integer
 
 ' One element (e.g. button, text input, scrollbar, etc.)
 type uiElement Extends Object
@@ -63,6 +90,8 @@ type uiContext
         Declare Constructor ( ByVal As Integer, ByVal As Integer, ByVal As Integer, ByVal As Integer )
         
         Declare Function update() As Integer
+        Declare Function draw( ByVal As Any Ptr = 0 ) As Integer
+        
         Declare Function add( ByVal As Any Ptr ) As Integer
 end type
 
@@ -132,6 +161,17 @@ Function uiContext.update() As Integer
                         this.element(i)->draw(@this)
                 Next
         Endif
+End Function
+
+' Draw to a buffer/the screen
+Function uiContext.draw( ByVal dest As Any Ptr = 0 ) As Integer
+        If this.buffer = 0 Then
+                Return -1
+        Endif
+        
+        Put dest, ( this.x, this.y ), this.buffer, PSET
+        
+        Return 0
 End Function
 
 ' Add a UI element
@@ -230,12 +270,44 @@ Function uiButton.draw( ByVal contextPtr As Any Ptr ) As Integer
         Return 0
 End Function
 
+' Some text
+Type uiText Extends uiElement
+        Private:
+        label As String
+        
+        Public:
+        Declare Constructor ( ByVal As Integer, ByVal As Integer, _
+                              ByVal As Integer, ByVal As Integer, _
+                              ByVal As String )
+
+        Declare Function draw( ByVal As Any Ptr ) As Integer Override
+End Type
+
+Constructor uiText ( ByVal x As Integer, ByVal y As Integer, _
+                       ByVal w As Integer, ByVal h As Integer, _
+                       ByVal label As String )
+                       
+        base( x, y, w, h )
+        
+        this.label = label
+End Constructor
+
+Function uiText.draw( ByVal contextPtr As Any Ptr ) As Integer
+        Dim As uiContext Ptr context = cast( uiContext Ptr, contextPtr )
+
+        __drawRect( context->buffer, this.x, this.y, this.w, this.h, RT_BLOCK )
+        
+        ..Draw String context->buffer, _
+                ( this.x + (this.w/2)-(len(this.label)*4), this.y + (this.h/2) - 4 ), _
+                this.label, rgb(255,255,255)
+        
+        Return 0
+End Function
+
 ' A checkbox
 Type uiCheckbox Extends uiElement
         Private:
         label As String
-        
-        activeTimer As Double
         
         Public:
         hover As Boolean
@@ -269,13 +341,11 @@ Function uiCheckbox.update( ByVal contextPtr As Any Ptr ) As Integer
                 this.hover = true
                 
                 If context->mouseBtn1 Then
-                        this.click = true
-                        
-                        If (timer-this.activeTimer)*1000 > 100 Then
+                        If not this.click Then
                                 this.active = not this.active
-                                
-                                this.activeTimer = timer
                         Endif
+                        
+                        this.click = true
                 Else
                         this.click = false
                 Endif
@@ -449,13 +519,14 @@ End Type
 
 Constructor uiScrollbar ( ByVal x As Integer, ByVal y As Integer, _
                        ByVal w As Integer, ByVal h As Integer )
-                       
+                
         base( x, y, w, h )
 End Constructor
 
 Function uiScrollbar.update( ByVal contextPtr As Any Ptr ) As Integer
         Dim As uiContext Ptr context = cast( uiContext Ptr, contextPtr )
         
+        ' Mouse logic
         If __inRect( context->mouseX, context->mouseY, base.x, _
                      base.y, base.x + base.w, base.y + base.h ) Then
                      
@@ -473,6 +544,7 @@ Function uiScrollbar.update( ByVal contextPtr As Any Ptr ) As Integer
                 this.click = false
         Endif
         
+        ' Scrolling logic
         If this.click Then
                 ' Update the position
                 If this.w > this.h Then
@@ -633,6 +705,220 @@ Function uiListbox.clear() As Integer
 End Function
 
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+' Dialouge boxes
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+' A single button message box
+Function dlgAlert( ByVal msg As String, ByVal btnText As String ) As Integer
+        ' Get information about the screen and choose a size and position for the
+        ' window
+        Dim As Integer          x
+        Dim As Integer          y
+        
+        Dim As Integer          w = 484
+        Dim As Integer          h = 128
+        
+        Dim As Integer          tLen = len(btnText)*8
+        
+        Dim As Integer          xres
+        Dim As Integer          yres
+        
+        ScreenInfo xres,yres
+        
+        x = (xres/2)-(w/2)
+        y = (yres/2)-(h/2)
+        
+        Dim As uiContext        dlgContext = uiContext( x, y, w, h )
+        
+        Dim As uiButton         confirm = uiButton( w - 35 - tLen, h - 35, tLen + 20, 20, btnText )
+        Dim As uiText           message = uiText( 15, 15, w-30, h-60, msg )
+        
+        dlgContext.add( @confirm )
+        dlgContext.add( @message )
+        
+        __shadeScreen()
+        
+        Do 
+                
+                ScreenLock
+                dlgContext.draw()
+                ScreenUnlock
+                
+                dlgContext.update()
+                
+                Sleep 1,1
+        Loop Until confirm.click
+        
+        Return 0
+End Function
+
+' A two button message box
+Function dlgConfirm( ByVal msg As String, ByVal btnText1 As String, ByVal btnText2 As String ) As Integer
+        ' Get information about the screen and choose a size and position for the
+        ' window
+        Dim As Integer          x
+        Dim As Integer          y
+        
+        Dim As Integer          w = 484
+        Dim As Integer          h = 128
+        
+        Dim As Integer          tLen1 = len(btnText1)*8
+        Dim As Integer          tLen2 = len(btnText2)*8
+        
+        Dim As Integer          xres
+        Dim As Integer          yres
+        
+        ScreenInfo xres,yres
+        
+        x = (xres/2)-(w/2)
+        y = (yres/2)-(h/2)
+        
+        Dim As uiContext        dlgContext = uiContext( x, y, w, h )
+        
+        Dim As uiButton         confirm = uiButton( w - 35 - tLen1, h - 35, tLen1 + 20, 20, btnText1 )
+        Dim As uiButton         cancel  = uiButton( confirm.x - 35 - tLen2, h - 35, tLen2 + 20, 20, btnText2 )
+        
+        Dim As uiText           message = uiText( 15, 15, w-30, h-60, msg )
+        
+        dlgContext.add( @confirm )
+        dlgContext.add( @cancel )
+        
+        dlgContext.add( @message )
+        
+        __shadeScreen()
+        
+        Do 
+                
+                ScreenLock
+                dlgContext.draw()
+                ScreenUnlock
+                
+                dlgContext.update()
+                
+                If confirm.click Then
+                        Return -1
+                ElseIf cancel.click Then
+                        Return 0
+                Endif
+                
+                Sleep 1,1
+        Loop
+End Function
+
+' A text input box
+Function dlgTextInput( ByVal msg As String, ByVal btnText1 As String, ByVal btnText2 As String ) As String
+        ' Get information about the screen and choose a size and position for the
+        ' window
+        Dim As Integer          x
+        Dim As Integer          y
+        
+        Dim As Integer          w = 484
+        Dim As Integer          h = 128
+        
+        Dim As Integer          tLen1 = len(btnText1)*8
+        Dim As Integer          tLen2 = len(btnText2)*8
+        
+        Dim As Integer          xres
+        Dim As Integer          yres
+        
+        ScreenInfo xres,yres
+        
+        x = (xres/2)-(w/2)
+        y = (yres/2)-(h/2)
+        
+        Dim As uiContext        dlgContext = uiContext( x, y, w, h )
+        
+        Dim As uiButton         confirm = uiButton( w - 35 - tLen1, h - 35, tLen1 + 20, 20, btnText1 )
+        Dim As uiButton         cancel  = uiButton( confirm.x - 35 - tLen2, h - 35, tLen2 + 20, 20, btnText2 )
+        
+        Dim As uiText           message  = uiText( 15, 15, w-30, (h-60)/2, msg )
+        Dim As uiTextInput      inputBox = uiTextInput(15, 20 + (h-60)/2, w-30, 20)
+        
+        dlgContext.add( @confirm )
+        dlgContext.add( @cancel )
+        
+        dlgContext.add( @message )
+        dlgContext.add( @inputBox )
+        
+        __shadeScreen()
+        
+        Do 
+                
+                ScreenLock
+                dlgContext.draw()
+                ScreenUnlock
+                
+                dlgContext.update()
+                
+                If confirm.click Then
+                        Return inputBox.value
+                ElseIf cancel.click Then
+                        Return ""
+                Endif
+                
+                Sleep 1,1
+        Loop
+End Function
+
+' A file browser selection window
+Function dlgFileBrowser( ByVal btnText As String ) As String
+        ' Get information about the screen and choose a size and position for the
+        ' window
+        Dim As Integer          x
+        Dim As Integer          y
+        
+        Dim As Integer          w = 576
+        Dim As Integer          h = 512
+        
+        Dim As Integer          btnLen = (len(btnText)*8)+10
+        
+        Dim As Integer          xres
+        Dim As Integer          yres
+        
+        ScreenInfo xres,yres
+        
+        x = (xres/2)-(w/2)
+        y = (yres/2)-(h/2)
+        
+        Dim As uiContext        dlgContext = uiContext( x, y, w, h )
+        
+        Dim As uiButton         confirm = uiButton( w - btnLen - 20, h - 40, btnLen, 20, btnText )
+        Dim As uiButton         cancel =  uiButton( confirm.x - 78,  h - 40, 58, 20, "Cancel" )
+        
+        Dim As uiTextInput      fileName = uiTextInput ( 20, h - 40, cancel.x - 40, 20 )
+        Dim As uiTextInput      path = uiTextInput ( 20, 20, w-40, 20 )
+        
+        Dim As uiListBox        fileList = uiListbox( 20, 60, w-60, h - 160 )
+        
+        dlgContext.add( @confirm )
+        dlgContext.add( @cancel )
+        
+        dlgContext.add( @fileName )
+        dlgContext.add( @path )
+        
+        dlgContext.add( @fileList )
+        
+        path.value = curDir
+        
+        Do 
+                
+                ScreenLock
+                dlgContext.draw()
+                ScreenUnlock
+                
+                dlgContext.update()
+                
+                If confirm.click Then
+                        Return path.value & __PATH_SEPERATOR__ & fileName.value
+                ElseIf cancel.click Then
+                        Return ""
+                Endif
+                
+                Sleep 1,1
+        Loop
+End Function
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 ' Override these functions in custom UI elements
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
@@ -686,6 +972,9 @@ Function __drawRect( ByVal dest As Any Ptr, _
         
         Select Case m
         
+        Case RT_BLOCK
+                Line dest, (x,y)-step(w,h), rgb(20,20,20),      BF
+                
         Case RT_ENABLED_BOX
                 Line dest, (x,y)-step(w,h), rgb(0,0,0),         BF
                 Line dest, (x,y)-step(w,h), rgb(255,255,255),   B
@@ -723,6 +1012,27 @@ Function __drawRect( ByVal dest As Any Ptr, _
                 Return -1
                 
         End Select
+        
+        Return 0
+End Function
+
+Function __shadeScreen() As Integer
+        Dim As Integer  w
+        Dim As Integer  h
+        
+        Dim As Any Ptr  shade
+        
+        ScreenInfo w,h
+        
+        shade = ImageCreate(w,h,rgba(0,0,0,120))
+        
+        If shade = 0 Then
+                Return -1
+        Endif
+        
+        Put (0,0), shade, ALPHA
+
+        ImageDestroy(shade):shade = 0
         
         Return 0
 End Function

@@ -22,12 +22,14 @@ ScreenRes __XRES,__YRES,32
 Dim As uiContext c = uiContext(10,10,800,600)
 
 Dim As uiListbox t = uiListbox(350,20,256,128)
+Dim As uiButton  b = uiButton(110,80,100,15,"Test")
 
 For i As Integer = 0 to 22
         t.add("Item " & i)
 Next
 
 c.add( @t )
+c.add( @b )
 
 c.add( new uiButton(110,20,100,15,"button") )
 
@@ -38,12 +40,23 @@ c.add( new uiTextInput(110,60,200,15) )
 c.add( new uiScrollbar(10,10,15,200) )
 c.add( new uiScrollbar(40,210,200,15) )
 
+Dim As String n = dlgFileBrowser("Select")
+
+dlgAlert(n, "OK")
+
 Do
         ScreenLock
-        Put (c.x, c.y), c.buffer, PSET
+        Line (0,0)-(__XRES, __YRES), rgb(0,0,0), BF
+        
+        c.draw()
         
         ScreenUnlock
         
         c.update()
+        
+        If b.click Then
+                dlgAlert("Alert Box", "Confirm")
+        Endif
+        
         Sleep 10,1
 Loop Until Multikey(1)
